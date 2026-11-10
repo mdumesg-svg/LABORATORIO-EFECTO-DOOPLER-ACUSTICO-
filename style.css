@@ -1,0 +1,929 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+    --bg: #0a1020;
+    --surface: #111b30;
+    --surface-2: #17243d;
+    --text: #edf4ff;
+    --muted: #91a2bd;
+    --line: #263651;
+    --accent: #63d7c6;
+    --accent-2: #7aa7ff;
+    --warning: #f5bd62;
+    --shadow: 0 16px 40px rgba(0,0,0,.18);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    transition: background .25s, color .25s;
+}
+
+/* TEMAS */
+body[data-theme="light"] {
+    --bg: #eef3f9;
+    --surface: #ffffff;
+    --surface-2: #f3f7fc;
+    --text: #17243a;
+    --muted: #64748b;
+    --line: #dce5ef;
+    --accent: #087f78;
+    --accent-2: #356bd6;
+    --warning: #9a6100;
+    --shadow: 0 12px 32px rgba(31,54,83,.08);
+}
+
+body[data-theme="ocean"] {
+    --bg: #061d2a;
+    --surface: #0b2c3d;
+    --surface-2: #104056;
+    --text: #e8fbff;
+    --muted: #9bc4d0;
+    --line: #205064;
+    --accent: #51e0d1;
+    --accent-2: #65baff;
+    --warning: #ffd078;
+}
+
+body[data-theme="sunset"] {
+    --bg: #24151e;
+    --surface: #35202b;
+    --surface-2: #482936;
+    --text: #fff1e9;
+    --muted: #d0aeb1;
+    --line: #62404b;
+    --accent: #ffb17b;
+    --accent-2: #e98bba;
+    --warning: #ffd27b;
+}
+
+button, input, select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+/* ENCABEZADO */
+.topbar {
+    min-height: 78px;
+    padding: 14px max(4vw, 22px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: #08212b;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.eyebrow {
+    font-size: 10px;
+    letter-spacing: 1.8px;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 5px;
+}
+
+.brand h1 {
+    font: 700 20px 'Space Grotesk';
+    margin: 0;
+}
+
+.brand h1 span {
+    color: var(--accent);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.theme-control {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.theme-control select, .full-select {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 9px 11px;
+    color: var(--text);
+}
+
+/* ESTRUCTURA GENERAL */
+.page {
+    max-width: 1500px;
+    margin: auto;
+    padding: 26px 4vw 35px;
+}
+
+.panel, .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    box-shadow: var(--shadow);
+}
+
+.intro {
+    padding: 25px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 17px;
+    background: linear-gradient(115deg, var(--surface), var(--surface-2));
+}
+
+.tag, .live-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    padding: 6px 9px;
+    border-radius: 30px;
+}
+
+.intro h2 {
+    font: 600 clamp(20px, 2.5vw, 30px) 'Space Grotesk';
+    margin: 13px 0 7px;
+    max-width: 760px;
+}
+
+.intro p {
+    color: var(--muted);
+    margin: 0;
+    max-width: 760px;
+    line-height: 1.6;
+    font-size: 13px;
+}
+
+.sound-icon {
+    font-size: 68px;
+    letter-spacing: -17px;
+    color: var(--accent);
+    padding: 0 28px 0 0;
+    opacity: .85;
+}
+
+/* INDICADORES */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 13px;
+    margin-bottom: 17px;
+}
+
+.metric-card {
+    padding: 17px 19px;
+}
+
+.metric-card span {
+    font-size: 11px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.metric-card strong {
+    font: 700 clamp(21px, 2.4vw, 29px) 'Space Grotesk';
+    display: block;
+    white-space: nowrap;
+}
+
+.metric-card strong small {
+    font: 500 12px 'DM Sans';
+    color: var(--muted);
+}
+
+.metric-card em {
+    font-size: 10px;
+    color: var(--muted);
+    font-style: normal;
+    display: block;
+    margin-top: 6px;
+}
+
+.metric-card.accent {
+    border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+}
+
+/* COLUMNAS (DISEÑO 3 COLUMNAS) */
+.workspace {
+    display: grid;
+    grid-template-columns: 280px minmax(400px, 1fr) 320px;
+    gap: 17px;
+    align-items: start;
+}
+
+.controls-panel {
+    padding: 20px;
+    position: sticky;
+    top: 12px;
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 17px;
+}
+
+.section-heading h2 {
+    font: 600 18px 'Space Grotesk';
+    margin: 0;
+}
+
+.section-heading .eyebrow {
+    margin-bottom: 4px;
+    display: block;
+}
+
+.text-button {
+    background: none;
+    border: 0;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.control-group {
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.control-group:last-of-type {
+    border-bottom: 0;
+}
+
+.control-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 9px;
+}
+
+.control-title label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.control-title output {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 9px;
+    margin-top: 3px;
+}
+
+.hint {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--muted);
+    margin: 7px 0 0;
+}
+
+.full-select {
+    width: 100%;
+    font-size: 11px;
+}
+
+.notice {
+    font-size: 10px;
+    line-height: 1.5;
+    padding: 10px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--warning) 12%, transparent);
+    color: var(--warning);
+    margin-top: 14px;
+}
+
+.main-column {
+    display: grid;
+    gap: 17px;
+    min-width: 0;
+}
+
+/* BOTONES */
+.simulation-panel, .charts-panel, .formulas-panel, .data-panel {
+    padding: 20px;
+}
+
+.sim-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    border-radius: 9px;
+    padding: 9px 13px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid var(--line);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #06222a;
+    border-color: var(--accent);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--text);
+}
+
+/* CANVAS */
+.canvas-wrap {
+    height: 310px;
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface-2);
+}
+
+#waveCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.canvas-overlay {
+    position: absolute;
+    top: 12px;
+    left: 13px;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+}
+
+.live-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #54d6a5;
+    margin-right: 6px;
+    box-shadow: 0 0 9px #54d6a5;
+}
+
+/* INTERRUPTORES VISUALES */
+.visual-controls {
+    display: flex;
+    gap: 17px;
+    flex-wrap: wrap;
+    padding: 14px 2px 8px;
+}
+
+.switch-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.switch-label input {
+    position: absolute;
+    opacity: 0;
+}
+
+.switch {
+    width: 27px;
+    height: 15px;
+    border-radius: 20px;
+    background: var(--line);
+    position: relative;
+    transition: .2s;
+}
+
+.switch:after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 11px;
+    height: 11px;
+    background: #fff;
+    border-radius: 50%;
+    transition: .2s;
+}
+
+.switch-label input:checked + .switch {
+    background: var(--accent);
+}
+
+.switch-label input:checked + .switch:after {
+    left: 14px;
+    background: #09252b;
+}
+
+/* LEYENDA */
+.legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.source-dot {
+    background: #ffb66b;
+}
+
+.receiver-dot {
+    background: #72a9ff;
+}
+
+.legend-line {
+    display: inline-block;
+    width: 14px;
+    border-top: 2px solid var(--accent);
+    margin: 0 5px 3px 0;
+}
+
+/* GRÁFICOS */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.chart-card {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 13px;
+    background: var(--surface-2);
+    height: 250px;
+}
+
+.chart-card h3 {
+    font-size: 11px;
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.chart-card canvas {
+    width: 100% !important;
+    height: 195px !important;
+}
+
+.wide-chart {
+    grid-column: 1 / -1;
+    height: 235px;
+}
+
+.wide-chart canvas {
+    height: 180px !important;
+}
+
+/* FÓRMULAS */
+.formula-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.formula-card {
+    padding: 13px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--surface-2);
+    min-width: 0;
+}
+
+.formula-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.formula-head h3 {
+    font-size: 11px;
+    margin: 0;
+}
+
+.mini-button {
+    font-size: 9px;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.equation {
+    font: 600 15px 'Space Grotesk';
+    padding: 14px 0 8px;
+    color: var(--accent-2);
+    overflow-wrap: anywhere;
+}
+
+.procedure {
+    font-size: 10px;
+    line-height: 1.7;
+    color: var(--muted);
+    display: none;
+    border-top: 1px dashed var(--line);
+    padding-top: 9px;
+    margin-top: 5px;
+}
+
+.procedure.open {
+    display: block;
+}
+
+.procedure strong {
+    color: var(--text);
+}
+
+/* TABLA */
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+th, td {
+    text-align: left;
+    padding: 11px 13px;
+    border-bottom: 1px solid var(--line);
+}
+
+th {
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+td:nth-child(3) {
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* PIE */
+footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    color: var(--muted);
+    font-size: 10px;
+    padding: 20px 2px;
+}
+
+/* MODAL QR */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    display: none;
+    place-items: center;
+    padding: 18px;
+    z-index: 20;
+}
+
+.modal-backdrop.open {
+    display: grid;
+}
+
+.qr-modal {
+    width: min(440px, 100%);
+    padding: 25px;
+    position: relative;
+    text-align: center;
+}
+
+.qr-modal h2 {
+    font: 600 22px 'Space Grotesk';
+    margin: 8px 0;
+}
+
+.qr-modal p {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.modal-close {
+    position: absolute;
+    right: 14px;
+    top: 10px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 27px;
+}
+
+.qr-code {
+    width: 190px;
+    height: 190px;
+    margin: 17px auto;
+    background: #fff;
+    padding: 10px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+}
+
+.qr-code img, .qr-code canvas {
+    max-width: 170px;
+    max-height: 170px;
+}
+
+.url-label {
+    text-align: left !important;
+    margin-bottom: 6px !important;
+}
+
+.url-row {
+    display: flex;
+    gap: 7px;
+}
+
+.url-row input {
+    min-width: 0;
+    flex: 1;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 9px;
+    font-size: 10px;
+}
+
+.qr-help {
+    font-size: 10px;
+    line-height: 1.6;
+    color: var(--warning);
+    text-align: left;
+    margin: 12px 0;
+}
+
+.full-button {
+    width: 100%;
+}
+
+/* --- PANEL DIDÁCTICO (DERECHO) --- */
+.educational-panel {
+    padding: 20px;
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+}
+
+.educational-panel::-webkit-scrollbar {
+    width: 6px;
+}
+.educational-panel::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 4px;
+}
+
+.edu-section {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+}
+.edu-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.edu-section h3 {
+    font: 600 14px 'Space Grotesk';
+    margin: 0 0 12px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.concept-text {
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 0 0 10px;
+}
+
+.concept-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+}
+.concept-list li { margin-bottom: 6px; }
+.concept-list strong { color: var(--text); }
+
+.literature-note {
+    font-size: 9px;
+    font-style: italic;
+    color: color-mix(in srgb, var(--muted) 70%, transparent);
+    margin-top: 10px;
+    text-align: right;
+}
+
+/* Tarjetas de Ejercicios */
+.exercise-card {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+.exercise-card:last-child { margin-bottom: 0; }
+.exercise-card h4 {
+    font: 600 12px 'DM Sans';
+    margin: 0 0 6px;
+    color: var(--text);
+}
+.exercise-card p {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 10px;
+}
+.btn-load-ex {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-load-ex:hover {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Guías y Excel */
+.resource-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.resource-btn {
+    text-align: left;
+    justify-content: flex-start;
+    padding: 10px 14px;
+}
+.highlight-section {
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+    margin: 15px -20px -20px;
+    padding: 20px;
+    border-radius: 0 0 17px 17px;
+}
+.excel-btn {
+    background: #107c41;
+    color: white;
+    border-color: #0b5e31;
+    margin-top: 10px;
+}
+.excel-btn:hover { background: #0b5e31; }
+
+
+/* --- DISEÑO RESPONSIVO --- */
+@media (max-width: 1300px) {
+    .workspace {
+        grid-template-columns: 280px minmax(0, 1fr);
+    }
+    .educational-panel {
+        grid-column: 1 / -1;
+        position: static;
+        max-height: none;
+    }
+}
+
+@media (max-width: 1000px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 760px) {
+    .topbar {
+        align-items: flex-start;
+        gap: 12px;
+        flex-direction: column;
+    }
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .workspace {
+        grid-template-columns: 1fr;
+    }
+    .controls-panel {
+        position: static;
+    }
+    .charts-grid, .formula-grid {
+        grid-template-columns: 1fr;
+    }
+    .wide-chart {
+        grid-column: auto;
+    }
+    .canvas-wrap {
+        height: 260px;
+    }
+    .intro {
+        padding: 20px;
+    }
+    .sound-icon {
+        display: none;
+    }
+    footer {
+        flex-direction: column;
+    }
+    .section-heading {
+        align-items: flex-start;
+    }
+    .sim-actions {
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .page {
+        padding: 16px 12px;
+    }
+    .metrics-grid {
+        gap: 8px;
+    }
+    .metric-card {
+        padding: 13px;
+    }
+    .metric-card strong {
+        font-size: 20px;
+    }
+    .simulation-panel, .charts-panel, .formulas-panel, .data-panel, .educational-panel {
+        padding: 14px;
+    }
+    .visual-controls {
+        gap: 11px;
+    }
+    .brand h1 {
+        font-size: 18px;
+    }
+}

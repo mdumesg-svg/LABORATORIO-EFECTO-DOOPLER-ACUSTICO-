@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Simulador avanzado del efecto Doppler acústico">
+    <title>Simulador Interactivo | Efecto Doppler</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Librería para gráficos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+
+    <!-- Librería para códigos QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+
+    <script src="script.js" defer></script>
+</head>
+
+<body data-theme="midnight">
+
+<header class="topbar">
+    <div class="brand">
+        <div class="brand-mark">∿</div>
+        <div>
+            <p class="eyebrow">LABORATORIO VIRTUAL DE FÍSICA</p>
+            <h1>Efecto Doppler <span>acústico</span></h1>
+        </div>
+    </div>
+
+    <div class="header-actions">
+        <label class="theme-control">
+            Tema
+            <select id="themeSelect">
+                <option value="midnight">Medianoche</option>
+                <option value="light">Claro</option>
+                <option value="ocean">Océano</option>
+                <option value="sunset">Atardecer</option>
+            </select>
+        </label>
+
+        <button class="btn btn-outline" id="shareBtn">
+            Compartir / QR
+        </button>
+    </div>
+</header>
+
+<main class="page">
+
+    <section class="intro panel">
+        <div>
+            <span class="tag">SIMULACIÓN EN TIEMPO REAL</span>
+            <h2>Observa cómo cambia el sonido cuando hay movimiento relativo.</h2>
+            <p>Modifica las condiciones de la fuente y del receptor. Los resultados, las gráficas y los procedimientos se actualizan automáticamente.</p>
+        </div>
+        <div class="sound-icon">)))</div>
+    </section>
+
+    <!-- RESULTADOS PRINCIPALES -->
+    <section class="metrics-grid">
+        <article class="metric-card">
+            <span>Velocidad del sonido</span>
+            <strong id="soundSpeedValue">343.4 <small>m/s</small></strong>
+            <em id="temperatureNote">A 20 °C</em>
+        </article>
+        <article class="metric-card accent">
+            <span>Frecuencia percibida</span>
+            <strong id="observedFrequencyValue">440 <small>Hz</small></strong>
+            <em id="frequencyState">Sin movimiento relativo</em>
+        </article>
+        <article class="metric-card">
+            <span>Longitud de onda emitida</span>
+            <strong id="emittedWavelengthValue">0.780 <small>m</small></strong>
+            <em>λ = v / f</em>
+        </article>
+        <article class="metric-card">
+            <span>Variación de frecuencia</span>
+            <strong id="frequencyDeltaValue">0.0 <small>%</small></strong>
+            <em>Respecto a la fuente</em>
+        </article>
+    </section>
+
+    <!-- ÁREA DE TRABAJO (TRES COLUMNAS) -->
+    <div class="workspace">
+
+        <!-- 1. PANEL IZQUIERDO: CONTROLES -->
+        <aside class="panel controls-panel">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">CONFIGURACIÓN</span>
+                    <h2>Variables del sistema</h2>
+                </div>
+                <button class="text-button" id="resetBtn">Restablecer</button>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="frequency">Frecuencia emitida</label>
+                    <output id="frequencyOut">440 Hz<output>
+                </div>
+                <input type="range" id="frequency" min="100" max="1200" step="10" value="440">
+                <div class="range-labels"><span>100 Hz</span><span>1200 Hz</span></div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="sourceVelocity">Velocidad de la fuente</label>
+                    <output id="sourceVelocityOut">20 m/s</output>
+                </div>
+                <input type="range" id="sourceVelocity" min="-250" max="250" step="1" value="20">
+                <div class="range-labels"><span>−250 m/s</span><span>+250 m/s</span></div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="receiverVelocity">Velocidad del receptor</label>
+                    <output id="receiverVelocityOut">0 m/s</output>
+                </div>
+                <input type="range" id="receiverVelocity" min="-100" max="100" step="1" value="0">
+                <div class="range-labels"><span>−100 m/s</span><span>+100 m/s</span></div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="temperature">Temperatura del aire</label>
+                    <output id="temperatureOut">20 °C</output>
+                </div>
+                <input type="range" id="temperature" min="-10" max="40" step="1" value="20">
+                <div class="range-labels"><span>-10 °C</span><span>40 °C</span></div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="amplitude">Amplitud visual</label>
+                    <output id="amplitudeOut">1.0</output>
+                </div>
+                <input type="range" id="amplitude" min="0.2" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="waveScale">Escala de ondas</label>
+                    <output id="waveScaleOut">1.0×</output>
+                </div>
+                <input type="range" id="waveScale" min="0.5" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="waveSpacing">Separación visual</label>
+                    <output id="waveSpacingOut">1.0×</output>
+                </div>
+                <input type="range" id="waveSpacing" min="0.5" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="directionMode">Dirección del movimiento</label>
+                </div>
+                <select id="directionMode" class="full-select">
+                    <option value="custom">Según velocidades</option>
+                    <option value="approach">Acercamiento mutuo</option>
+                    <option value="recede">Alejamiento mutuo</option>
+                    <option value="stationary">Fuente y receptor en reposo</option>
+                </select>
+            </div>
+
+            <div class="notice" id="physicsWarning" style="display:none;">
+                Modelo clásico: velocidades subsónicas respecto al aire.
+            </div>
+        </aside>
+
+        <!-- 2. COLUMNA CENTRAL: SIMULADOR Y GRÁFICAS -->
+        <section class="main-column">
+            
+            <!-- SIMULACIÓN -->
+            <section class="panel simulation-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">VISTA ESPACIAL</span>
+                        <h2>Propagación de las ondas</h2>
+                    </div>
+                    <div class="sim-actions">
+                        <button class="btn btn-primary" id="pauseBtn">Pausar</button>
+                        <button class="btn btn-outline" id="restartAnimationBtn">Reiniciar</button>
+                    </div>
+                </div>
+
+                <div class="canvas-wrap">
+                    <canvas id="waveCanvas"></canvas>
+                    <div class="canvas-overlay">
+                        <span class="live-dot"></span> SIMULACIÓN ACTIVA
+                    </div>
+                </div>
+
+                <div class="visual-controls">
+                    <label class="switch-label"><input type="checkbox" id="showWaves" checked><span class="switch"></span> Ondas</label>
+                    <label class="switch-label"><input type="checkbox" id="showPath" checked><span class="switch"></span> Trayectoria</label>
+                    <label class="switch-label"><input type="checkbox" id="showArrows" checked><span class="switch"></span> Direcciones</label>
+                    <label class="switch-label"><input type="checkbox" id="showLabels" checked><span class="switch"></span> Etiquetas</label>
+                    <label class="switch-label"><input type="checkbox" id="showReceiver" checked><span class="switch"></span> Receptor</label>
+                </div>
+
+                <div class="legend">
+                    <span><i class="legend-dot source-dot"></i> Fuente sonora</span>
+                    <span><i class="legend-dot receiver-dot"></i> Receptor</span>
+                    <span><i class="legend-line"></i> Frente de onda</span>
+                </div>
+            </section>
+
+            <!-- GRÁFICAS -->
+            <section class="panel charts-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">ANÁLISIS GRÁFICO</span>
+                        <h2>Relación entre variables</h2>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <article class="chart-card">
+                        <h3>Frecuencia percibida vs. velocidad de la fuente</h3>
+                        <canvas id="chartSource"></canvas>
+                    </article>
+                    <article class="chart-card">
+                        <h3>Longitud de onda frontal y posterior</h3>
+                        <canvas id="chartWavelength"></canvas>
+                    </article>
+                    <article class="chart-card">
+                        <h3>Frecuencia emitida y percibida</h3>
+                        <canvas id="chartCompare"></canvas>
+                    </article>
+                    <article class="chart-card">
+                        <h3>Velocidad de la fuente vs. sonido</h3>
+                        <canvas id="chartSpeed"></canvas>
+                    </article>
+                    <article class="chart-card wide-chart">
+                        <h3>Frecuencia percibida en función del tiempo</h3>
+                        <canvas id="chartTime"></canvas>
+                    </article>
+                </div>
+            </section>
+
+            <!-- FÓRMULAS -->
+            <section class="panel formulas-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">DESARROLLO MATEMÁTICO</span>
+                        <h2>Fórmulas y procedimientos</h2>
+                    </div>
+                    <span class="live-badge">Actualización automática</span>
+                </div>
+
+                <div class="formula-grid">
+                    <article class="formula-card">
+                        <div class="formula-head">
+                            <h3>1. Velocidad del sonido</h3>
+                            <button class="mini-button" data-procedure="sound">Ver procedimiento</button>
+                        </div>
+                        <div class="equation">v = 331,3 + 0,606 · T</div>
+                        <div class="procedure" id="proc-sound"></div>
+                    </article>
+                    <article class="formula-card">
+                        <div class="formula-head">
+                            <h3>2. Frecuencia percibida</h3>
+                            <button class="mini-button" data-procedure="doppler">Ver procedimiento</button>
+                        </div>
+                        <div class="equation">f′ = f · (v − vᵣ) / (v − vₛ)</div>
+                        <div class="procedure" id="proc-doppler"></div>
+                    </article>
+                    <article class="formula-card">
+                        <div class="formula-head">
+                            <h3>3. Longitud de onda emitida</h3>
+                            <button class="mini-button" data-procedure="emitted">Ver procedimiento</button>
+                        </div>
+                        <div class="equation">λ = v / f</div>
+                        <div class="procedure" id="proc-emitted"></div>
+                    </article>
+                    <article class="formula-card">
+                        <div class="formula-head">
+                            <h3>4. Longitudes de onda</h3>
+                            <button class="mini-button" data-procedure="frontback">Ver procedimiento</button>
+                        </div>
+                        <div class="equation">λ = (v −/+ vₛ) / f</div>
+                        <div class="procedure" id="proc-frontback"></div>
+                    </article>
+                    <article class="formula-card">
+                        <div class="formula-head">
+                            <h3>5. Variación porcentual</h3>
+                            <button class="mini-button" data-procedure="delta">Ver procedimiento</button>
+                        </div>
+                        <div class="equation">%Δf = [(f′ − f) / f] · 100</div>
+                        <div class="procedure" id="proc-delta"></div>
+                    </article>
+                </div>
+            </section>
+        </section>
+
+        <!-- 3. NUEVO PANEL DERECHO: RECURSOS DIDÁCTICOS -->
+        <aside class="panel educational-panel">
+            
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">AULA VIRTUAL</span>
+                    <h2>Módulo de Indagación</h2>
+                </div>
+            </div>
+
+            <!-- Sección de Conceptos -->
+            <div class="edu-section">
+                <h3>📚 Fundamento Teórico</h3>
+                <p class="concept-text">
+                    El <strong>Efecto Doppler</strong> es el cambio en la frecuencia percibida de cualquier movimiento ondulatorio cuando el emisor, o el observador, se desplazan uno respecto al otro.
+                </p>
+                <ul class="concept-list">
+                    <li><strong>Acercamiento:</strong> Los frentes de onda se comprimen frente a la fuente (menor λ). La frecuencia percibida (f') aumenta (sonido más agudo).</li>
+                    <li><strong>Alejamiento:</strong> Las ondas se separan detrás de la fuente (mayor λ). La frecuencia disminuye (sonido más grave).</li>
+                </ul>
+                <div class="literature-note">
+                    Basado en literatura científica estándar de acústica clásica.
+                </div>
+            </div>
+
+            <!-- Sección de Ejercicios -->
+            <div class="edu-section">
+                <h3>🎯 Retos Prácticos</h3>
+                
+                <div class="exercise-card">
+                    <h4>Reto 1: El tren en la estación</h4>
+                    <p>Un tren emite un silbato a 500 Hz acercándose a 30 m/s hacia un pasajero en reposo. ¿Cuál es la frecuencia que escucha el pasajero?</p>
+                    <button class="mini-button btn-load-ex" data-f="500" data-vs="30" data-vr="0">Cargar variables</button>
+                </div>
+
+                <div class="exercise-card">
+                    <h4>Reto 2: Persecución en la vía</h4>
+                    <p>Una patrulla (fuente) viaja a 40 m/s persiguiendo un auto (receptor) que huye a 25 m/s. Ajusta la temperatura a 25°C. Comprueba cómo la dirección relativa afecta el desplazamiento porcentual.</p>
+                    <button class="mini-button btn-load-ex" data-f="800" data-vs="40" data-vr="25" data-t="25">Cargar variables</button>
+                </div>
+            </div>
+
+            <!-- Sección de Cuadernillos y Guías -->
+            <div class="edu-section">
+                <h3>📖 Material de Clase</h3>
+                <div class="resource-links">
+                    <button class="btn btn-outline resource-btn" onclick="alert('Descargando Guía Práctica de Laboratorio (PDF)...')">
+                        📄 Rúbrica de Laboratorio
+                    </button>
+                    <button class="btn btn-outline resource-btn" onclick="alert('Abriendo Cuadernillo de Ejercicios...')">
+                        📓 Cuadernillo de Actividades
+                    </button>
+                </div>
+            </div>
+
+            <!-- Extensión de Excel -->
+            <div class="edu-section highlight-section">
+                <h3>📊 Extensión de Datos</h3>
+                <p class="concept-text">Captura las métricas actuales del simulador y expórtalas para realizar análisis de regresión o tablas de datos en Microsoft Excel.</p>
+                <button class="btn btn-primary full-button excel-btn" id="exportExcelBtn">
+                    Descargar datos a Excel (.CSV)
+                </button>
+            </div>
+
+        </aside>
+    </div>
+
+    <!-- TABLA DE RESULTADOS -->
+    <section class="panel data-panel">
+        <div class="section-heading">
+            <div>
+                <span class="eyebrow">DATOS DE LA EXPERIENCIA</span>
+                <h2>Resumen de mediciones</h2>
+            </div>
+            <button class="btn btn-outline" id="downloadCsvBtn" style="display:none;">Exportar CSV</button>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Símbolo</th>
+                        <th>Valor actual</th>
+                        <th>Unidad</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTable"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer>
+        <span>Simulador educativo del efecto Doppler acústico</span>
+        <span>Modelo ideal en un medio uniforme · Uso didáctico</span>
+    </footer>
+
+</main>
+
+<!-- VENTANA DEL CÓDIGO QR -->
+<div class="modal-backdrop" id="qrModal" aria-hidden="true">
+    <section class="qr-modal panel">
+        <button class="modal-close" id="closeQrBtn">×</button>
+        <span class="eyebrow">COMPARTIR SIMULADOR</span>
+        <h2 id="qrTitle">Acceso mediante código QR</h2>
+        <p id="qrMessage">Publica el simulador en Internet y comparte su dirección.</p>
+        <div id="qrcode" class="qr-code"></div>
+        <p class="url-label">Dirección de esta página</p>
+        <div class="url-row">
+            <input id="pageUrl" readonly>
+            <button class="btn btn-primary" id="copyUrlBtn">Copiar</button>
+        </div>
+        <div class="qr-help" id="qrHelp"></div>
+        <button class="btn btn-outline full-button" id="regenerateQrBtn" style="display:none;">Actualizar QR</button>
+    </section>
+</div>
+
+</body>
+</html>
