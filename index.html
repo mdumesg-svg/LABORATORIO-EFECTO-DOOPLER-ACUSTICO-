@@ -8,12 +8,9 @@
 
     <link rel="stylesheet" href="style.css">
 
-    <!-- Librería para gráficos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
-
-    <!-- Librería para códigos QR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
-
+    
     <script src="script.js" defer></script>
 </head>
 
@@ -38,10 +35,16 @@
                 <option value="sunset">Atardecer</option>
             </select>
         </label>
-
-        <button class="btn btn-outline" id="shareBtn">
-            Compartir / QR
-        </button>
+        
+        <!-- PANEL DE USUARIO -->
+        <div id="userPanel" style="display: flex; align-items: center; gap: 10px; margin-left: 15px; padding-left: 15px; border-left: 1px solid var(--line);">
+            <button class="btn btn-primary" id="loginBtn">Ingresar con Google</button>
+            <div id="userInfo" style="display: none; align-items: center; gap: 8px;">
+                <img id="userPhoto" src="" alt="Perfil" style="width: 32px; height: 32px; border-radius: 50%;">
+                <span id="userName" style="font-size: 12px; font-weight: 600;"></span>
+                <button class="btn btn-outline" id="logoutBtn" style="padding: 5px 8px; font-size: 10px;">Salir</button>
+            </div>
+        </div>
     </div>
 </header>
 
@@ -80,7 +83,7 @@
         </article>
     </section>
 
-    <!-- ÁREA DE TRABAJO (TRES COLUMNAS) -->
+    <!-- ÁREA DE TRABAJO -->
     <div class="workspace">
 
         <!-- 1. PANEL IZQUIERDO: CONTROLES -->
@@ -96,7 +99,7 @@
             <div class="control-group">
                 <div class="control-title">
                     <label for="frequency">Frecuencia emitida</label>
-                    <output id="frequencyOut">440 Hz<output>
+                    <output id="frequencyOut">440 Hz</output>
                 </div>
                 <input type="range" id="frequency" min="100" max="1200" step="10" value="440">
                 <div class="range-labels"><span>100 Hz</span><span>1200 Hz</span></div>
@@ -173,7 +176,6 @@
         <!-- 2. COLUMNA CENTRAL: SIMULADOR Y GRÁFICAS -->
         <section class="main-column">
             
-            <!-- SIMULACIÓN -->
             <section class="panel simulation-panel">
                 <div class="section-heading">
                     <div>
@@ -181,6 +183,7 @@
                         <h2>Propagación de las ondas</h2>
                     </div>
                     <div class="sim-actions">
+                        <button class="btn btn-outline" id="toggleAudioBtn">🔊 Sonido</button>
                         <button class="btn btn-primary" id="pauseBtn">Pausar</button>
                         <button class="btn btn-outline" id="restartAnimationBtn">Reiniciar</button>
                     </div>
@@ -200,15 +203,8 @@
                     <label class="switch-label"><input type="checkbox" id="showLabels" checked><span class="switch"></span> Etiquetas</label>
                     <label class="switch-label"><input type="checkbox" id="showReceiver" checked><span class="switch"></span> Receptor</label>
                 </div>
-
-                <div class="legend">
-                    <span><i class="legend-dot source-dot"></i> Fuente sonora</span>
-                    <span><i class="legend-dot receiver-dot"></i> Receptor</span>
-                    <span><i class="legend-line"></i> Frente de onda</span>
-                </div>
             </section>
 
-            <!-- GRÁFICAS -->
             <section class="panel charts-panel">
                 <div class="section-heading">
                     <div>
@@ -218,29 +214,28 @@
                 </div>
                 <div class="charts-grid">
                     <article class="chart-card">
-                        <h3>Frecuencia percibida vs. velocidad de la fuente</h3>
+                        <h3>Frecuencia vs. Vel. Fuente</h3>
                         <canvas id="chartSource"></canvas>
                     </article>
                     <article class="chart-card">
-                        <h3>Longitud de onda frontal y posterior</h3>
+                        <h3>Longitud de onda</h3>
                         <canvas id="chartWavelength"></canvas>
                     </article>
                     <article class="chart-card">
-                        <h3>Frecuencia emitida y percibida</h3>
+                        <h3>Frecuencia Emitida vs Percibida</h3>
                         <canvas id="chartCompare"></canvas>
                     </article>
                     <article class="chart-card">
-                        <h3>Velocidad de la fuente vs. sonido</h3>
+                        <h3>Límite supersónico (Mach 1)</h3>
                         <canvas id="chartSpeed"></canvas>
                     </article>
                     <article class="chart-card wide-chart">
-                        <h3>Frecuencia percibida en función del tiempo</h3>
+                        <h3>Historial temporal de frecuencia percibida</h3>
                         <canvas id="chartTime"></canvas>
                     </article>
                 </div>
             </section>
 
-            <!-- FÓRMULAS -->
             <section class="panel formulas-panel">
                 <div class="section-heading">
                     <div>
@@ -295,8 +290,8 @@
             </section>
         </section>
 
-        <!-- 3. NUEVO PANEL DERECHO: RECURSOS DIDÁCTICOS -->
-        <aside class="panel educational-panel">
+        <!-- 3. PANEL DERECHO: RECURSOS, TAREAS Y CHAT -->
+        <aside class="panel educational-panel" id="educationalPanel">
             
             <div class="section-heading">
                 <div>
@@ -305,7 +300,6 @@
                 </div>
             </div>
 
-            <!-- Sección de Conceptos -->
             <div class="edu-section">
                 <h3>📚 Fundamento Teórico</h3>
                 <p class="concept-text">
@@ -315,30 +309,25 @@
                     <li><strong>Acercamiento:</strong> Los frentes de onda se comprimen frente a la fuente (menor λ). La frecuencia percibida (f') aumenta (sonido más agudo).</li>
                     <li><strong>Alejamiento:</strong> Las ondas se separan detrás de la fuente (mayor λ). La frecuencia disminuye (sonido más grave).</li>
                 </ul>
-                <div class="literature-note">
-                    Basado en literatura científica estándar de acústica clásica.
-                </div>
+                <div class="literature-note">Basado en literatura científica estándar de acústica clásica.</div>
             </div>
 
-            <!-- Sección de Ejercicios -->
             <div class="edu-section">
                 <h3>🎯 Retos Prácticos</h3>
-                
                 <div class="exercise-card">
                     <h4>Reto 1: El tren en la estación</h4>
                     <p>Un tren emite un silbato a 500 Hz acercándose a 30 m/s hacia un pasajero en reposo. ¿Cuál es la frecuencia que escucha el pasajero?</p>
                     <button class="mini-button btn-load-ex" data-f="500" data-vs="30" data-vr="0">Cargar variables</button>
                 </div>
-
                 <div class="exercise-card">
                     <h4>Reto 2: Persecución en la vía</h4>
-                    <p>Una patrulla (fuente) viaja a 40 m/s persiguiendo un auto (receptor) que huye a 25 m/s. Ajusta la temperatura a 25°C. Comprueba cómo la dirección relativa afecta el desplazamiento porcentual.</p>
+                    <p>Una patrulla (fuente) viaja a 40 m/s persiguiendo un auto (receptor) que huye a 25 m/s. Ajusta la temperatura a 25°C. Analiza el desplazamiento porcentual.</p>
                     <button class="mini-button btn-load-ex" data-f="800" data-vs="40" data-vr="25" data-t="25">Cargar variables</button>
                 </div>
             </div>
 
-            <!-- Sección de Cuadernillos y Guías -->
-            <div class="edu-section">
+            <!-- NUEVO: MATERIAL DE CLASE (Oculto por defecto, se activa con Login) -->
+            <div class="edu-section" id="materialPanel" style="display: none;">
                 <h3>📖 Material de Clase</h3>
                 <div class="resource-links">
                     <button class="btn btn-outline resource-btn" onclick="alert('Descargando Guía Práctica de Laboratorio (PDF)...')">
@@ -350,13 +339,36 @@
                 </div>
             </div>
 
-            <!-- Extensión de Excel -->
-            <div class="edu-section highlight-section">
-                <h3>📊 Extensión de Datos</h3>
-                <p class="concept-text">Captura las métricas actuales del simulador y expórtalas para realizar análisis de regresión o tablas de datos en Microsoft Excel.</p>
-                <button class="btn btn-primary full-button excel-btn" id="exportExcelBtn">
-                    Descargar datos a Excel (.CSV)
-                </button>
+            <!-- SECCIÓN DE TAREAS Y ARCHIVOS (Oculta por defecto) -->
+            <div class="edu-section highlight-section" id="taskPanel" style="display: none; background: color-mix(in srgb, var(--accent-2) 10%, transparent); margin: 15px -20px 0; border-radius: 0;">
+                <h3>📂 Gestor de Tareas</h3>
+                <p class="concept-text" id="taskInstructions">Inicia sesión para ver las asignaciones de la clase.</p>
+                
+                <div class="url-row" style="margin-bottom: 10px;">
+                    <input type="file" id="fileInput" style="font-size: 10px; background: transparent; border: none; flex: 1;">
+                    <button class="btn btn-primary" id="uploadFileBtn" style="padding: 6px 12px; font-size: 10px;">Subir Archivo</button>
+                </div>
+                
+                <div style="background: var(--surface-2); padding: 10px; border-radius: 8px; max-height: 120px; overflow-y: auto;">
+                    <h4 style="font-size: 10px; margin: 0 0 5px; color: var(--muted);">Archivos compartidos de la clase:</h4>
+                    <ul id="fileList" style="list-style: none; padding: 0; margin: 0; font-size: 10px;">
+                        <li style="color: var(--muted); font-style: italic;">No hay archivos aún.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- CHAT EN TIEMPO REAL (Oculto por defecto) -->
+            <div class="edu-section highlight-section" id="chatPanel" style="display: none; margin-top: 0; padding-top: 10px;">
+                <h3>💬 Chat de la Clase</h3>
+                
+                <div id="chatBox" style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; height: 180px; overflow-y: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="text-align: center; color: var(--muted); font-size: 10px;">Bienvenido al chat. Escribe tu duda.</div>
+                </div>
+
+                <div class="url-row">
+                    <input type="text" id="chatInput" placeholder="Escribe un mensaje..." style="flex: 1;">
+                    <button class="btn btn-primary" id="sendMsgBtn">Enviar</button>
+                </div>
             </div>
 
         </aside>
@@ -369,47 +381,52 @@
                 <span class="eyebrow">DATOS DE LA EXPERIENCIA</span>
                 <h2>Resumen de mediciones</h2>
             </div>
-            <button class="btn btn-outline" id="downloadCsvBtn" style="display:none;">Exportar CSV</button>
+            <button class="btn btn-primary excel-btn" id="exportExcelBtn">Descargar datos a Excel (.CSV)</button>
         </div>
         <div class="table-scroll">
             <table>
                 <thead>
-                    <tr>
-                        <th>Variable</th>
-                        <th>Símbolo</th>
-                        <th>Valor actual</th>
-                        <th>Unidad</th>
-                    </tr>
+                    <tr><th>Variable</th><th>Símbolo</th><th>Valor actual</th><th>Unidad</th></tr>
                 </thead>
                 <tbody id="dataTable"></tbody>
             </table>
         </div>
     </section>
 
-    <footer>
-        <span>Simulador educativo del efecto Doppler acústico</span>
-        <span>Modelo ideal en un medio uniforme · Uso didáctico</span>
-    </footer>
-
 </main>
 
-<!-- VENTANA DEL CÓDIGO QR -->
-<div class="modal-backdrop" id="qrModal" aria-hidden="true">
-    <section class="qr-modal panel">
-        <button class="modal-close" id="closeQrBtn">×</button>
-        <span class="eyebrow">COMPARTIR SIMULADOR</span>
-        <h2 id="qrTitle">Acceso mediante código QR</h2>
-        <p id="qrMessage">Publica el simulador en Internet y comparte su dirección.</p>
-        <div id="qrcode" class="qr-code"></div>
-        <p class="url-label">Dirección de esta página</p>
-        <div class="url-row">
-            <input id="pageUrl" readonly>
-            <button class="btn btn-primary" id="copyUrlBtn">Copiar</button>
-        </div>
-        <div class="qr-help" id="qrHelp"></div>
-        <button class="btn btn-outline full-button" id="regenerateQrBtn" style="display:none;">Actualizar QR</button>
-    </section>
-</div>
+<!-- CONEXIÓN A FIREBASE Y LIBRERÍAS DE PLATAFORMA -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBUpDSKH5mSWcB46JSFkEBWcZ57Un8iLk",
+    authDomain: "laboratorio-de-fisica-unemi.firebaseapp.com",
+    projectId: "laboratorio-de-fisica-unemi",
+    storageBucket: "laboratorio-de-fisica-unemi.firebasestorage.app",
+    messagingSenderId: "667578113527",
+    appId: "1:667578113527:web:fb9d518fc0002b195f22f2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
+  const provider = new GoogleAuthProvider();
+
+  window.firebaseAuth = auth;
+  window.firebaseDb = db;
+  window.firebaseStorage = storage;
+  window.googleProvider = provider;
+  window.signInWithPopup = signInWithPopup;
+  window.signOut = signOut;
+  window.onAuthStateChanged = onAuthStateChanged;
+  window.firestoreAPI = { doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy };
+  window.storageAPI = { ref, uploadBytesResumable, getDownloadURL, listAll };
+</script>
 
 </body>
 </html>
