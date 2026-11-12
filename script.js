@@ -1,6 +1,6 @@
 /**
  * SIMULADOR DE EFECTO DOPPLER ACÚSTICO COMPLETO
- * Incluye Web Audio API, Roles Firestore, Gráficas, Fórmulas y Material de Clase condicional
+ * Incluye Web Audio API, Roles Firestore, Gráficas, Fórmulas, Material de Clase, Chat y Subida de Archivos
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -279,17 +279,21 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
 
     // ==========================================
-    // 7. FIREBASE: LOGIN Y VISIBILIDAD DE PANELES
+    // 7. FIREBASE: PLATAFORMA LMS (CHAT Y ARCHIVOS)
     // ==========================================
     setTimeout(() => {
-        if(window.firebaseAuth && window.firestoreAPI) {
+        if(window.firebaseAuth && window.firestoreAPI && window.storageAPI) {
             const loginBtn = document.getElementById('loginBtn');
             const logoutBtn = document.getElementById('logoutBtn');
             const userInfo = document.getElementById('userInfo');
             const userPhoto = document.getElementById('userPhoto');
             const userName = document.getElementById('userName');
 
-            const { doc, getDoc, setDoc } = window.firestoreAPI;
+            const { doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy } = window.firestoreAPI;
+            const { ref, uploadBytesResumable, getDownloadURL } = window.storageAPI;
+
+            let unsubscribeChat = null;
+            let unsubscribeFiles = null;
 
             async function checkUserRole(user) {
                 const userRef = doc(window.firebaseDb, "usuarios", user.email);
@@ -314,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const taskPanel = document.getElementById('taskPanel');
                 const chatPanel = document.getElementById('chatPanel');
-                const materialPanel = document.getElementById('materialPanel'); // Panel de guías y cuadernillos
+                const materialPanel = document.getElementById('materialPanel');
                 const taskInst = document.getElementById('taskInstructions');
 
                 if (rol === 'docente') {
@@ -329,10 +333,102 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 eduPanel.insertBefore(rolBadge, eduPanel.children[1]);
                 
-                // Mostrar todos los paneles educativos solo cuando se inicia sesión
                 taskPanel.style.display = 'block';
                 chatPanel.style.display = 'block';
-                materialPanel.style.display = 'block'; // Aparecen los cuadernillos
+                materialPanel.style.display = 'block';
+            }
+
+            function iniciarSistemas(user) {
+                // 1. CHAT EN TIEMPO REAL
+                const chatBox = document.getElementById('chatBox');
+                const chatInput = document.getElementById('chatInput');
+                const sendMsgBtn = document.getElementById('sendMsgBtn');
+
+                const qChat = query(collection(window.firebaseDb, "chat"), orderBy("fecha", "asc"));
+                unsubscribeChat = onSnapshot(qChat, (snapshot) => {
+                    chatBox.innerHTML = '';
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const div = document.createElement('div');
+                        div.style.fontSize = '11px';
+                        div.style.background = data.email === user.email ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--surface-1)';
+                        div.style.padding = '8px';
+                        div.style.borderRadius = '5px';
+                        div.style.borderLeft = data.email === user.email ? '3px solid var(--primary)' : '3px solid var(--muted)';
+                        div.innerHTML = `<strong style="color:var(--text);">${data.usuario}</strong><br><span style="color:var(--muted);">${data.mensaje}</span>`;
+                        chatBox.appendChild(div);
+                    });
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                });
+
+                sendMsgBtn.onclick = async () => {
+                    const msg = chatInput.value.trim();
+                    if(msg === '') return;
+                    await addDoc(collection(window.firebaseDb, "chat"), {
+                        usuario: user.displayName,
+                        email: user.email,
+                        mensaje: msg,
+                        fecha: new Date()
+                    });
+                    chatInput.value = '';
+                };
+
+                // 2. GESTIÓN DE ARCHIVOS
+                const fileInput = document.getElementById('fileInput');
+                const uploadFileBtn = document.getElementById('uploadFileBtn');
+                const fileList = document.getElementById('fileList');
+
+                const qFiles = query(collection(window.firebaseDb, "archivos"), orderBy("fecha", "desc"));
+                unsubscribeFiles = onSnapshot(qFiles, (snapshot) => {
+                    fileList.innerHTML = '';
+                    if(snapshot.empty) {
+                        fileList.innerHTML = '<li style="color: var(--muted); font-style: italic;">No hay archivos aún.</li>';
+                        return;
+                    }
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const li = document.createElement('li');
+                        li.style.marginBottom = '8px';
+                        li.style.paddingBottom = '8px';
+                        li.style.borderBottom = '1px solid var(--line)';
+                        li.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📄 ${data.nombre}</a><br><span style="color: var(--muted); font-size: 9px;">Subido por ${data.subidoPor}</span>`;
+                        fileList.appendChild(li);
+                    });
+                });
+
+                uploadFileBtn.onclick = () => {
+                    const file = fileInput.files[0];
+                    if(!file) return alert("Por favor, selecciona un archivo primero.");
+                    
+                    uploadFileBtn.textContent = "Subiendo...";
+                    uploadFileBtn.disabled = true;
+
+                    const storageRef = ref(window.firebaseStorage, 'archivos/' + file.name);
+                    const uploadTask = uploadBytesResumable(storageRef, file);
+
+                    uploadTask.on('state_changed', 
+                        null, 
+                        (error) => {
+                            console.error(error);
+                            alert("Error al subir el archivo.");
+                            uploadFileBtn.textContent = "Subir Archivo";
+                            uploadFileBtn.disabled = false;
+                        }, 
+                        async () => {
+                            const url = await getDownloadURL(uploadTask.snapshot.ref);
+                            await addDoc(collection(window.firebaseDb, "archivos"), {
+                                nombre: file.name,
+                                url: url,
+                                subidoPor: user.displayName,
+                                email: user.email,
+                                fecha: new Date()
+                            });
+                            fileInput.value = '';
+                            uploadFileBtn.textContent = "Subir Archivo";
+                            uploadFileBtn.disabled = false;
+                        }
+                    );
+                };
             }
 
             window.onAuthStateChanged(window.firebaseAuth, async (user) => {
@@ -341,18 +437,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     userInfo.style.display = 'flex';
                     userName.textContent = user.displayName;
                     userPhoto.src = user.photoURL;
+                    
                     const rol = await checkUserRole(user);
                     aplicarRolVisual(rol);
+                    iniciarSistemas(user);
+
                 } else {
                     loginBtn.style.display = 'block';
                     userInfo.style.display = 'none';
-                    // Ocultar paneles si no hay sesión
                     document.getElementById('taskPanel').style.display = 'none';
                     document.getElementById('chatPanel').style.display = 'none';
-                    document.getElementById('materialPanel').style.display = 'none'; // Se ocultan los cuadernillos
+                    document.getElementById('materialPanel').style.display = 'none';
                     
                     const rolBadge = document.querySelector('.rol-badge');
                     if (rolBadge) rolBadge.remove();
+
+                    if(unsubscribeChat) unsubscribeChat();
+                    if(unsubscribeFiles) unsubscribeFiles();
                 }
             });
 
