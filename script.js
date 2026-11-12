@@ -1,16 +1,33 @@
 /**
- * SIMULADOR DE EFECTO DOPPLER ACÚSTICO COMPLETO
- * Incluye Web Audio API, Roles Firestore, Gráficas, Fórmulas, Material de Clase, Chat y Subida de Archivos
+ * SIMULADOR DE EFECTO DOPPLER ACÚSTICO Y AULA VIRTUAL (LMS)
+ * UNEMI - Laboratorio Virtual de Física
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. ESTADO GLOBAL
     const state = {
-        f: 440, vS: 20, vR: 0, T: 20, v: 343.4, fObs: 440, lambda: 0.78,
-        isPaused: false, time: 0, waves: [], srcX: 0, recX: 0, history: []
+        f: 440,
+        vS: 20,
+        vR: 0,
+        T: 20,
+        amplitude: 1.0,
+        waveScale: 1.0,
+        waveSpacing: 1.0,
+        v: 343.4,
+        fObs: 440,
+        lambda: 0.78,
+        isPaused: false,
+        time: 0,
+        waves: [],
+        srcX: 0,
+        recX: 0,
+        history: []
     };
 
-    let audioCtx = null, oscillator = null, gainNode = null, isAudioPlaying = false;
+    let audioCtx = null;
+    let oscillator = null;
+    let gainNode = null;
+    let isAudioPlaying = false;
     let charts = {};
 
     const inputs = {
@@ -18,10 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
         sourceVelocity: document.getElementById('sourceVelocity'),
         receiverVelocity: document.getElementById('receiverVelocity'),
         temperature: document.getElementById('temperature'),
-        directionMode: document.getElementById('directionMode'),
-        themeSelect: document.getElementById('themeSelect'),
+        amplitude: document.getElementById('amplitude'),
         waveScale: document.getElementById('waveScale'),
-        waveSpacing: document.getElementById('waveSpacing')
+        waveSpacing: document.getElementById('waveSpacing'),
+        directionMode: document.getElementById('directionMode'),
+        themeSelect: document.getElementById('themeSelect')
     };
 
     const outputs = {
@@ -29,8 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
         vS: document.getElementById('sourceVelocityOut'),
         vR: document.getElementById('receiverVelocityOut'),
         T: document.getElementById('temperatureOut'),
+        amplitude: document.getElementById('amplitudeOut'),
+        waveScale: document.getElementById('waveScaleOut'),
+        waveSpacing: document.getElementById('waveSpacingOut'),
         soundSpeed: document.getElementById('soundSpeedValue'),
+        tempNote: document.getElementById('temperatureNote'),
         observedFreq: document.getElementById('observedFrequencyValue'),
+        freqState: document.getElementById('frequencyState'),
         emittedWave: document.getElementById('emittedWavelengthValue'),
         freqDelta: document.getElementById('frequencyDeltaValue')
     };
@@ -46,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('waveCanvas');
     const ctx = canvas.getContext('2d');
 
-    // 2. AUDIO WEB API
+    // 2. WEB AUDIO API (SINTETIZADOR EN TIEMPO REAL)
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -54,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             oscillator = audioCtx.createOscillator();
             gainNode = audioCtx.createGain();
             oscillator.type = 'sine';
-            oscillator.frequency.value = state.fObs;
+            oscillator.frequency.value = state.fObs || state.f;
             gainNode.gain.value = 0;
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
@@ -63,9 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleAudio(btn) {
-        initAudio(); 
+        initAudio();
         if (audioCtx.state === 'suspended') audioCtx.resume();
         isAudioPlaying = !isAudioPlaying;
+
         if (isAudioPlaying) {
             gainNode.gain.setTargetAtTime(0.1, audioCtx.currentTime, 0.05);
             btn.innerHTML = '🔇 Silenciar';
@@ -77,17 +101,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. FÍSICA Y FÓRMULAS
+    // 3. MOTOR FÍSICO Y CÁLCULO DE FÓRMULAS
     function calculatePhysics() {
         state.f = parseFloat(inputs.frequency.value);
         state.vS = parseFloat(inputs.sourceVelocity.value);
         state.vR = parseFloat(inputs.receiverVelocity.value);
         state.T = parseFloat(inputs.temperature.value);
+        state.amplitude = parseFloat(inputs.amplitude.value);
+        state.waveScale = parseFloat(inputs.waveScale.value);
+        state.waveSpacing = parseFloat(inputs.waveSpacing.value);
 
         const mode = inputs.directionMode.value;
-        if (mode === 'approach') { state.vS = Math.abs(state.vS); state.vR = -Math.abs(state.vR); } 
-        else if (mode === 'recede') { state.vS = -Math.abs(state.vS); state.vR = Math.abs(state.vR); } 
-        else if (mode === 'stationary') { state.vS = 0; state.vR = 0; inputs.sourceVelocity.value = 0; inputs.receiverVelocity.value = 0; }
+        if (mode === 'approach') {
+            state.vS = Math.abs(state.vS) || 30;
+            state.vR = -Math.abs(state.vR);
+            inputs.sourceVelocity.value = state.vS;
+            inputs.receiverVelocity.value = state.vR;
+        } else if (mode === 'recede') {
+            state.vS = -Math.abs(state.vS) || -30;
+            state.vR = Math.abs(state.vR);
+            inputs.sourceVelocity.value = state.vS;
+            inputs.receiverVelocity.value = state.vR;
+        } else if (mode === 'stationary') {
+            state.vS = 0;
+            state.vR = 0;
+            inputs.sourceVelocity.value = 0;
+            inputs.receiverVelocity.value = 0;
+        }
 
         state.v = 331.3 + (0.606 * state.T);
         let denom = state.v - state.vS;
@@ -95,25 +135,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(denom) < 0.1) denom = 0.1;
 
         state.fObs = state.f * (num / denom);
-        if (state.fObs < 0 || state.vS >= state.v) state.fObs = 0; 
+        if (state.fObs < 0 || state.vS >= state.v) state.fObs = 0;
+
         state.lambda = state.v / state.f;
         const delta = ((state.fObs - state.f) / state.f) * 100;
 
-        if (oscillator && isAudioPlaying) oscillator.frequency.setTargetAtTime(state.fObs, audioCtx.currentTime, 0.1);
+        if (oscillator && isAudioPlaying && state.fObs > 0) {
+            oscillator.frequency.setTargetAtTime(Math.min(state.fObs, 4000), audioCtx.currentTime, 0.08);
+        }
 
+        // Actualizar etiquetas de salida
         outputs.f.textContent = `${state.f} Hz`;
         outputs.vS.textContent = `${state.vS} m/s`;
         outputs.vR.textContent = `${state.vR} m/s`;
         outputs.T.textContent = `${state.T} °C`;
+        outputs.amplitude.textContent = state.amplitude.toFixed(1);
+        outputs.waveScale.textContent = `${state.waveScale.toFixed(1)}×`;
+        outputs.waveSpacing.textContent = `${state.waveSpacing.toFixed(1)}×`;
+
         outputs.soundSpeed.innerHTML = `${state.v.toFixed(1)} <small>m/s</small>`;
-        
+        outputs.tempNote.textContent = `A ${state.T} °C`;
+
         if (state.vS >= state.v) {
             outputs.observedFreq.innerHTML = `Supersónico`;
+            outputs.freqState.textContent = `Mach ${(state.vS / state.v).toFixed(2)}`;
             document.getElementById('physicsWarning').style.display = 'block';
         } else {
             outputs.observedFreq.innerHTML = `${state.fObs.toFixed(1)} <small>Hz</small>`;
             document.getElementById('physicsWarning').style.display = 'none';
+            if (Math.abs(delta) < 0.05) outputs.freqState.textContent = 'Sin desplazamiento Doppler';
+            else if (delta > 0) outputs.freqState.textContent = 'Tono más agudo (compresión)';
+            else outputs.freqState.textContent = 'Tono más grave (expansión)';
         }
+
         outputs.emittedWave.innerHTML = `${state.lambda.toFixed(3)} <small>m</small>`;
         outputs.freqDelta.innerHTML = `${delta > 0 ? '+' : ''}${delta.toFixed(1)} <small>%</small>`;
 
@@ -123,132 +177,277 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateFormulas(delta, num, denom) {
-        document.getElementById('proc-sound').innerHTML = `v = 331,3 + 0,606(${state.T})<br><strong>v = ${state.v.toFixed(1)} m/s</strong>`;
-        document.getElementById('proc-doppler').innerHTML = `f′ = ${state.f} · (${state.v.toFixed(1)} ${state.vR >= 0 ? '-' : '+'} ${Math.abs(state.vR)}) / (${state.v.toFixed(1)} ${state.vS >= 0 ? '-' : '+'} ${Math.abs(state.vS)})<br>f′ = ${state.f} · (${num.toFixed(1)}) / (${denom.toFixed(1)})<br><strong>f′ = ${state.fObs.toFixed(1)} Hz</strong>`;
-        document.getElementById('proc-emitted').innerHTML = `λ = ${state.v.toFixed(1)} / ${state.f}<br><strong>λ = ${state.lambda.toFixed(3)} m</strong>`;
-        let lambdaFront = (state.v - state.vS) / state.f;
-        let lambdaBack = (state.v + state.vS) / state.f;
-        document.getElementById('proc-frontback').innerHTML = `Frente: λ = (${state.v.toFixed(1)} - ${state.vS}) / ${state.f} = <strong>${lambdaFront.toFixed(3)} m</strong><br>Detrás: λ = (${state.v.toFixed(1)} + ${state.vS}) / ${state.f} = <strong>${lambdaBack.toFixed(3)} m</strong>`;
-        document.getElementById('proc-delta').innerHTML = `%Δf = [(${state.fObs.toFixed(1)} - ${state.f}) / ${state.f}] · 100<br><strong>%Δf = ${delta.toFixed(1)} %</strong>`;
+        document.getElementById('proc-sound').innerHTML =
+            `v = 331,3 + 0,606(${state.T})<br><strong>v = ${state.v.toFixed(1)} m/s</strong>`;
+
+        document.getElementById('proc-doppler').innerHTML =
+            `f′ = ${state.f} · (${state.v.toFixed(1)} ${state.vR >= 0 ? '−' : '+'} ${Math.abs(state.vR)}) / (${state.v.toFixed(1)} ${state.vS >= 0 ? '−' : '+'} ${Math.abs(state.vS)})<br>` +
+            `f′ = ${state.f} · (${num.toFixed(1)}) / (${denom.toFixed(1)})<br><strong>f′ = ${state.fObs.toFixed(1)} Hz</strong>`;
+
+        document.getElementById('proc-emitted').innerHTML =
+            `λ = ${state.v.toFixed(1)} / ${state.f}<br><strong>λ = ${state.lambda.toFixed(3)} m</strong>`;
+
+        const lambdaFront = Math.max(0, (state.v - state.vS) / state.f);
+        const lambdaBack = (state.v + state.vS) / state.f;
+        document.getElementById('proc-frontback').innerHTML =
+            `Frente: λ = (${state.v.toFixed(1)} − ${state.vS}) / ${state.f} = <strong>${lambdaFront.toFixed(3)} m</strong><br>` +
+            `Detrás: λ = (${state.v.toFixed(1)} + ${state.vS}) / ${state.f} = <strong>${lambdaBack.toFixed(3)} m</strong>`;
+
+        document.getElementById('proc-delta').innerHTML =
+            `%Δf = [(${state.fObs.toFixed(1)} − ${state.f}) / ${state.f}] · 100<br><strong>%Δf = ${delta.toFixed(1)} %</strong>`;
     }
 
     function updateDataTable() {
         document.getElementById('dataTable').innerHTML = `
-            <tr><td>Velocidad Sonido</td><td>v</td><td>${state.v.toFixed(1)}</td><td>m/s</td></tr>
-            <tr><td>Frec. Emitida</td><td>f</td><td>${state.f}</td><td>Hz</td></tr>
-            <tr><td>Frec. Percibida</td><td>f'</td><td>${state.fObs.toFixed(1)}</td><td>Hz</td></tr>
-            <tr><td>Vel. Fuente</td><td>v<sub>s</sub></td><td>${state.vS}</td><td>m/s</td></tr>
-            <tr><td>Vel. Receptor</td><td>v<sub>r</sub></td><td>${state.vR}</td><td>m/s</td></tr>
-            <tr><td>Long. de Onda</td><td>λ</td><td>${state.lambda.toFixed(3)}</td><td>m</td></tr>
+            <tr><td>Velocidad del sonido</td><td>v</td><td>${state.v.toFixed(1)}</td><td>m/s</td></tr>
+            <tr><td>Frecuencia emitida</td><td>f</td><td>${state.f}</td><td>Hz</td></tr>
+            <tr><td>Frecuencia percibida</td><td>f′</td><td>${state.fObs.toFixed(1)}</td><td>Hz</td></tr>
+            <tr><td>Velocidad de la fuente</td><td>vₛ</td><td>${state.vS}</td><td>m/s</td></tr>
+            <tr><td>Velocidad del receptor</td><td>vᵣ</td><td>${state.vR}</td><td>m/s</td></tr>
+            <tr><td>Longitud de onda emitida</td><td>λ</td><td>${state.lambda.toFixed(3)}</td><td>m</td></tr>
         `;
     }
 
-    // 4. GRÁFICOS
+    // 4. GRÁFICAS (5 PANELES)
     function initCharts() {
         Chart.defaults.color = '#91a2bd';
         Chart.defaults.font.family = "'DM Sans', sans-serif";
-        const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(145,162,189,0.1)' } }, y: { grid: { color: 'rgba(145,162,189,0.1)' } } } };
-        
-        charts.source = new Chart(document.getElementById('chartSource'), { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#63d7c6', tension: 0.4 }] }, options: opts });
-        charts.wavelength = new Chart(document.getElementById('chartWavelength'), { type: 'bar', data: { labels: ['Frente', 'Detrás'], datasets: [{ data: [0, 0], backgroundColor: ['#ffb66b', '#7aa7ff'] }] }, options: opts });
-        charts.compare = new Chart(document.getElementById('chartCompare'), { type: 'bar', data: { labels: ['Emitida (f)', 'Percibida (f\')'], datasets: [{ data: [0, 0], backgroundColor: ['#91a2bd', '#63d7c6'] }] }, options: opts });
-        charts.speed = new Chart(document.getElementById('chartSpeed'), { type: 'doughnut', data: { labels: ['Velocidad Fuente', 'Margen hasta Mach 1'], datasets: [{ data: [0, 100], backgroundColor: ['#f5bd62', '#263651'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } } });
-        charts.time = new Chart(document.getElementById('chartTime'), { type: 'line', data: { labels: Array(20).fill(''), datasets: [{ data: Array(20).fill(null), borderColor: '#7aa7ff', fill: true, backgroundColor: 'rgba(122, 167, 255, 0.1)' }] }, options: { ...opts, animation: false, scales: { y: { min: 0 } } } });
+        const opts = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: 'rgba(145,162,189,0.1)' } },
+                y: { grid: { color: 'rgba(145,162,189,0.1)' } }
+            }
+        };
+
+        charts.source = new Chart(document.getElementById('chartSource'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#63d7c6', tension: 0.35 }] },
+            options: opts
+        });
+
+        charts.wavelength = new Chart(document.getElementById('chartWavelength'), {
+            type: 'bar',
+            data: { labels: ['Frente (λ−)', 'Detrás (λ+)'], datasets: [{ data: [0, 0], backgroundColor: ['#ffb66b', '#72a9ff'] }] },
+            options: opts
+        });
+
+        charts.compare = new Chart(document.getElementById('chartCompare'), {
+            type: 'bar',
+            data: { labels: ['Emitida (f)', 'Percibida (f′)'], datasets: [{ data: [0, 0], backgroundColor: ['#91a2bd', '#63d7c6'] }] },
+            options: opts
+        });
+
+        charts.speed = new Chart(document.getElementById('chartSpeed'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Número de Mach', 'Margen subsónico'],
+                datasets: [{ data: [0, 1], backgroundColor: ['#ffb66b', '#243452'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: { legend: { display: false } } }
+        });
+
+        charts.time = new Chart(document.getElementById('chartTime'), {
+            type: 'line',
+            data: {
+                labels: Array(25).fill(''),
+                datasets: [{ data: Array(25).fill(null), borderColor: '#72a9ff', fill: true, backgroundColor: 'rgba(114, 169, 255, 0.12)', tension: 0.25 }]
+            },
+            options: { ...opts, animation: false, scales: { y: { min: 0 } } }
+        });
     }
 
     function updateCharts() {
         if (!charts.source) return;
-        let vData = [], fData = [];
-        for (let v = -100; v <= 100; v += 20) {
+        const vData = [];
+        const fData = [];
+        for (let v = -120; v <= 120; v += 20) {
             vData.push(v);
-            let d = state.v - v;
-            let val = state.f * ((state.v - state.vR) / (d === 0 ? 0.1 : d));
+            const d = state.v - v;
+            const val = state.f * ((state.v - state.vR) / (d === 0 ? 0.1 : d));
             fData.push(val > 0 ? val : 0);
         }
-        charts.source.data.labels = vData; charts.source.data.datasets[0].data = fData; charts.source.update();
-        charts.wavelength.data.datasets[0].data = [(state.v - state.vS) / state.f, (state.v + state.vS) / state.f]; charts.wavelength.update();
-        charts.compare.data.datasets[0].data = [state.f, state.fObs]; charts.compare.update();
-        let mach = Math.abs(state.vS) / state.v; charts.speed.data.datasets[0].data = [mach, Math.max(0, 1 - mach)]; charts.speed.update();
-        
+        charts.source.data.labels = vData;
+        charts.source.data.datasets[0].data = fData;
+        charts.source.update();
+
+        charts.wavelength.data.datasets[0].data = [
+            Math.max(0, (state.v - state.vS) / state.f),
+            (state.v + state.vS) / state.f
+        ];
+        charts.wavelength.update();
+
+        charts.compare.data.datasets[0].data = [state.f, state.fObs];
+        charts.compare.update();
+
+        const mach = Math.min(1, Math.abs(state.vS) / state.v);
+        charts.speed.data.datasets[0].data = [mach, Math.max(0, 1 - mach)];
+        charts.speed.update();
+
         if (!state.isPaused) {
             state.history.push(state.fObs);
-            if (state.history.length > 20) state.history.shift();
+            if (state.history.length > 25) state.history.shift();
             charts.time.data.datasets[0].data = state.history;
             charts.time.update();
         }
     }
 
-    // 5. CANVAS RENDER
+    // 5. ANIMACIÓN CANVAS
     function resizeCanvas() {
-        canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight;
-        state.srcX = canvas.width / 4; state.recX = (canvas.width / 4) * 3;
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        state.srcX = canvas.width * 0.25;
+        state.recX = canvas.width * 0.75;
+    }
+
+    function drawArrow(fx, fy, tx, ty, color) {
+        const angle = Math.atan2(ty - fy, tx - fx);
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(tx - 7 * Math.cos(angle - Math.PI / 6), ty - 7 * Math.sin(angle - Math.PI / 6));
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx - 7 * Math.cos(angle + Math.PI / 6), ty - 7 * Math.sin(angle + Math.PI / 6));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 
     function draw() {
         if (!state.isPaused) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            let vSRatio = state.vS / 340; let vRRatio = state.vR / 340;
-            state.srcX += vSRatio * 2;
-            if (toggles.receiver.checked) state.recX += vRRatio * 2;
-            if (state.srcX > canvas.width + 50) state.srcX = -50; if (state.srcX < -50) state.srcX = canvas.width + 50;
-            if (state.recX > canvas.width + 50) state.recX = -50; if (state.recX < -50) state.recX = canvas.width + 50;
+            const cY = canvas.height / 2;
+
+            state.srcX += (state.vS / 340) * 2.2 * state.waveScale;
+            if (toggles.receiver.checked) {
+                state.recX += (state.vR / 340) * 2.2 * state.waveScale;
+            }
+
+            if (state.srcX > canvas.width + 40) state.srcX = -40;
+            if (state.srcX < -40) state.srcX = canvas.width + 40;
+            if (state.recX > canvas.width + 40) state.recX = -40;
+            if (state.recX < -40) state.recX = canvas.width + 40;
 
             state.time++;
-            if (state.time % Math.max(5, Math.floor(100 / (state.f/440))) === 0 && toggles.waves.checked) {
-                state.waves.push({ x: state.srcX, y: canvas.height / 2, radius: 0, alpha: 1 });
+            const emitInterval = Math.max(4, Math.floor((85 / (state.f / 440)) / state.waveSpacing));
+            if (state.time % emitInterval === 0 && toggles.waves.checked) {
+                state.waves.push({ x: state.srcX, y: cY, radius: 0, alpha: 1 });
             }
 
+            // Trayectoria
             if (toggles.path.checked) {
-                ctx.beginPath(); ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height / 2);
-                ctx.strokeStyle = '#263651'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(0, cY);
+                ctx.lineTo(canvas.width, cY);
+                ctx.strokeStyle = 'rgba(145, 162, 189, 0.25)';
+                ctx.setLineDash([6, 6]);
+                ctx.stroke();
+                ctx.setLineDash([]);
             }
 
+            // Frentes de onda
             if (toggles.waves.checked) {
                 for (let i = state.waves.length - 1; i >= 0; i--) {
-                    let w = state.waves[i];
-                    w.radius += (state.v / 100);
-                    w.alpha -= 0.003;
-                    if (w.alpha <= 0) { state.waves.splice(i, 1); continue; }
-                    ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(99, 215, 198, ${Math.max(0, w.alpha)})`; ctx.lineWidth = 1.5; ctx.stroke();
+                    const w = state.waves[i];
+                    w.radius += (state.v / 110) * state.waveScale;
+                    w.alpha -= 0.0032 * state.waveScale;
+                    if (w.alpha <= 0) {
+                        state.waves.splice(i, 1);
+                        continue;
+                    }
+                    ctx.beginPath();
+                    ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(99, 215, 198, ${Math.max(0, w.alpha)})`;
+                    ctx.lineWidth = 1.4 * state.amplitude;
+                    ctx.stroke();
                 }
             }
 
-            const cY = canvas.height / 2;
+            // Receptor
             if (toggles.receiver.checked) {
-                ctx.beginPath(); ctx.arc(state.recX, cY, 8, 0, Math.PI * 2); ctx.fillStyle = '#72a9ff'; ctx.fill();
+                ctx.beginPath();
+                ctx.arc(state.recX, cY, 9, 0, Math.PI * 2);
+                ctx.fillStyle = '#72a9ff';
+                ctx.fill();
+
+                if (toggles.arrows.checked && state.vR !== 0) {
+                    const dir = state.vR > 0 ? 34 : -34;
+                    drawArrow(state.recX, cY + 18, state.recX + dir, cY + 18, '#72a9ff');
+                }
+                if (toggles.labels.checked) {
+                    ctx.fillStyle = '#72a9ff';
+                    ctx.font = '600 11px "DM Sans", sans-serif';
+                    ctx.fillText(`Receptor (${state.vR} m/s)`, state.recX - 42, cY - 16);
+                }
             }
-            ctx.beginPath(); ctx.arc(state.srcX, cY, 8, 0, Math.PI * 2); ctx.fillStyle = '#ffb66b'; ctx.fill();
+
+            // Fuente
+            ctx.beginPath();
+            ctx.arc(state.srcX, cY, 9, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffb66b';
+            ctx.fill();
+
+            if (toggles.arrows.checked && state.vS !== 0) {
+                const dir = state.vS > 0 ? 34 : -34;
+                drawArrow(state.srcX, cY + 18, state.srcX + dir, cY + 18, '#ffb66b');
+            }
+            if (toggles.labels.checked) {
+                ctx.fillStyle = '#ffb66b';
+                ctx.font = '600 11px "DM Sans", sans-serif';
+                ctx.fillText(`Fuente (${state.vS} m/s)`, state.srcX - 38, cY - 16);
+            }
         }
         requestAnimationFrame(draw);
     }
 
-    // 6. EVENTOS BÁSICOS
-    Object.values(inputs).forEach(input => { if (input) input.addEventListener('input', calculatePhysics); });
+    // 6. EVENTOS DE SIMULADOR
+    Object.values(inputs).forEach(input => {
+        if (input && input.id !== 'themeSelect') {
+            input.addEventListener('input', () => {
+                if (input.id === 'sourceVelocity' || input.id === 'receiverVelocity') {
+                    inputs.directionMode.value = 'custom';
+                }
+                calculatePhysics();
+            });
+        }
+    });
+
     inputs.themeSelect.addEventListener('change', (e) => {
         document.body.setAttribute('data-theme', e.target.value);
         Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted');
         Object.values(charts).forEach(c => c.update());
     });
+
     document.getElementById('toggleAudioBtn').addEventListener('click', (e) => toggleAudio(e.target));
     document.getElementById('pauseBtn').addEventListener('click', (e) => {
-        state.isPaused = !state.isPaused; e.target.textContent = state.isPaused ? 'Reanudar' : 'Pausar';
+        state.isPaused = !state.isPaused;
+        e.target.textContent = state.isPaused ? 'Reanudar' : 'Pausar';
     });
-    document.getElementById('restartAnimationBtn').addEventListener('click', () => { state.waves = []; resizeCanvas(); });
+    document.getElementById('restartAnimationBtn').addEventListener('click', () => {
+        state.waves = [];
+        resizeCanvas();
+    });
     document.getElementById('resetBtn').addEventListener('click', () => {
-        inputs.frequency.value = 440; inputs.sourceVelocity.value = 20; inputs.receiverVelocity.value = 0; inputs.temperature.value = 20;
-        calculatePhysics(); state.waves = [];
+        inputs.frequency.value = 440;
+        inputs.sourceVelocity.value = 20;
+        inputs.receiverVelocity.value = 0;
+        inputs.temperature.value = 20;
+        inputs.amplitude.value = 1;
+        inputs.waveScale.value = 1;
+        inputs.waveSpacing.value = 1;
+        inputs.directionMode.value = 'custom';
+        calculatePhysics();
+        state.waves = [];
     });
 
-    document.querySelectorAll('.mini-button').forEach(btn => {
-        if(!btn.classList.contains('btn-load-ex')) {
-            btn.addEventListener('click', (e) => {
-                const procId = 'proc-' + e.target.getAttribute('data-procedure');
-                const panel = document.getElementById(procId);
-                panel.classList.toggle('open');
-                e.target.textContent = panel.classList.contains('open') ? 'Ocultar' : 'Ver procedimiento';
-            });
-        }
+    document.querySelectorAll('.mini-button[data-procedure]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const panel = document.getElementById('proc-' + e.target.getAttribute('data-procedure'));
+            panel.classList.toggle('open');
+            e.target.textContent = panel.classList.contains('open') ? 'Ocultar' : 'Ver procedimiento';
+        });
     });
 
     document.querySelectorAll('.btn-load-ex').forEach(btn => {
@@ -256,216 +455,307 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target.dataset.f) inputs.frequency.value = e.target.dataset.f;
             if (e.target.dataset.vs) inputs.sourceVelocity.value = e.target.dataset.vs;
             if (e.target.dataset.vr) inputs.receiverVelocity.value = e.target.dataset.vr;
-            inputs.directionMode.value = 'custom'; 
+            if (e.target.dataset.t) inputs.temperature.value = e.target.dataset.t;
+            inputs.directionMode.value = 'custom';
             calculatePhysics();
-            const ogText = e.target.textContent; e.target.textContent = '¡Cargado!';
-            setTimeout(() => e.target.textContent = ogText, 1500);
+            const original = e.target.textContent;
+            e.target.textContent = '¡Variables cargadas!';
+            setTimeout(() => { e.target.textContent = original; }, 1500);
         });
     });
 
     document.getElementById('exportExcelBtn').addEventListener('click', () => {
         let csv = "Variable;Simbolo;Valor;Unidad\n";
         const rows = [
-            ["Temperatura", "T", state.T, "°C"], ["Velocidad del Sonido", "v", state.v.toFixed(2).replace('.', ','), "m/s"],
-            ["Frecuencia Emitida", "f", state.f, "Hz"], ["Frecuencia Percibida", "f'", state.fObs.toFixed(2).replace('.', ','), "Hz"]
+            ["Temperatura", "T", state.T, "°C"],
+            ["Velocidad del Sonido", "v", state.v.toFixed(2).replace('.', ','), "m/s"],
+            ["Frecuencia Emitida", "f", state.f, "Hz"],
+            ["Frecuencia Percibida", "f'", state.fObs.toFixed(2).replace('.', ','), "Hz"],
+            ["Velocidad Fuente", "vs", state.vS, "m/s"],
+            ["Velocidad Receptor", "vr", state.vR, "m/s"],
+            ["Longitud de Onda", "lambda", state.lambda.toFixed(4).replace('.', ','), "m"]
         ];
-        rows.forEach(r => csv += r.join(";") + "\n");
+        rows.forEach(r => { csv += r.join(";") + "\n"; });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }));
-        link.download = `doppler_${new Date().getTime()}.csv`;
+        link.download = `doppler_unemi_${Date.now()}.csv`;
         link.click();
     });
 
     window.addEventListener('resize', resizeCanvas);
 
     // ==========================================
-    // 7. FIREBASE: PLATAFORMA LMS (CHAT Y ARCHIVOS)
+    // 7. FIREBASE: ROLES, CHAT, ARCHIVOS Y NOTAS
     // ==========================================
     setTimeout(() => {
-        if(window.firebaseAuth && window.firestoreAPI && window.storageAPI) {
-            const loginBtn = document.getElementById('loginBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const userInfo = document.getElementById('userInfo');
-            const userPhoto = document.getElementById('userPhoto');
-            const userName = document.getElementById('userName');
+        if (!window.firebaseAuth || !window.firestoreAPI || !window.storageAPI) return;
 
-            const { doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy } = window.firestoreAPI;
-            const { ref, uploadBytesResumable, getDownloadURL } = window.storageAPI;
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userInfo = document.getElementById('userInfo');
+        const userPhoto = document.getElementById('userPhoto');
+        const userName = document.getElementById('userName');
 
-            let unsubscribeChat = null;
-            let unsubscribeFiles = null;
+        const { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } = window.firestoreAPI;
+        const { ref, uploadBytesResumable, getDownloadURL } = window.storageAPI;
 
-            async function checkUserRole(user) {
-                const userRef = doc(window.firebaseDb, "usuarios", user.email);
-                const docSnap = await getDoc(userRef);
-                if (docSnap.exists()) {
-                    return docSnap.data().rol;
-                } else {
-                    await setDoc(userRef, { nombre: user.displayName, email: user.email, rol: "estudiante", fecha: new Date() });
-                    return "estudiante";
-                }
-            }
+        let unsubscribeChat = null;
+        let unsubscribeFiles = null;
+        let currentUserRole = 'estudiante';
 
-            function aplicarRolVisual(rol) {
-                const eduPanel = document.getElementById('educationalPanel');
-                const viejas = eduPanel.querySelectorAll('.rol-badge');
-                viejas.forEach(tag => tag.remove());
-
-                const rolBadge = document.createElement('div');
-                rolBadge.className = 'tag rol-badge';
-                rolBadge.style.marginBottom = '15px';
-                rolBadge.style.display = 'inline-block';
-
-                const taskPanel = document.getElementById('taskPanel');
-                const chatPanel = document.getElementById('chatPanel');
-                const materialPanel = document.getElementById('materialPanel');
-                const taskInst = document.getElementById('taskInstructions');
-
-                if (rol === 'docente') {
-                    rolBadge.textContent = '👨‍🏫 VISTA DE DOCENTE';
-                    rolBadge.style.backgroundColor = 'color-mix(in srgb, var(--warning) 15%, transparent)';
-                    rolBadge.style.color = 'var(--warning)';
-                    taskInst.textContent = "Sube las tareas y guías para los alumnos (PDF/Word).";
-                } else {
-                    rolBadge.textContent = '🎓 VISTA DE ESTUDIANTE';
-                    taskInst.textContent = "Descarga la tarea del profesor y sube tu resolución.";
-                }
-
-                eduPanel.insertBefore(rolBadge, eduPanel.children[1]);
-                
-                taskPanel.style.display = 'block';
-                chatPanel.style.display = 'block';
-                materialPanel.style.display = 'block';
-            }
-
-            function iniciarSistemas(user) {
-                // 1. CHAT EN TIEMPO REAL
-                const chatBox = document.getElementById('chatBox');
-                const chatInput = document.getElementById('chatInput');
-                const sendMsgBtn = document.getElementById('sendMsgBtn');
-
-                const qChat = query(collection(window.firebaseDb, "chat"), orderBy("fecha", "asc"));
-                unsubscribeChat = onSnapshot(qChat, (snapshot) => {
-                    chatBox.innerHTML = '';
-                    snapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const div = document.createElement('div');
-                        div.style.fontSize = '11px';
-                        div.style.background = data.email === user.email ? 'color-mix(in srgb, var(--primary) 20%, transparent)' : 'var(--surface-1)';
-                        div.style.padding = '8px';
-                        div.style.borderRadius = '5px';
-                        div.style.borderLeft = data.email === user.email ? '3px solid var(--primary)' : '3px solid var(--muted)';
-                        div.innerHTML = `<strong style="color:var(--text);">${data.usuario}</strong><br><span style="color:var(--muted);">${data.mensaje}</span>`;
-                        chatBox.appendChild(div);
-                    });
-                    chatBox.scrollTop = chatBox.scrollHeight;
+        async function checkUserRole(user) {
+            const userRef = doc(window.firebaseDb, "usuarios", user.email);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                return docSnap.data().rol || "estudiante";
+            } else {
+                await setDoc(userRef, {
+                    nombre: user.displayName,
+                    email: user.email,
+                    rol: "estudiante",
+                    fecha: new Date()
                 });
+                return "estudiante";
+            }
+        }
 
-                sendMsgBtn.onclick = async () => {
-                    const msg = chatInput.value.trim();
-                    if(msg === '') return;
+        function aplicarRolVisual(rol) {
+            currentUserRole = rol;
+            const eduPanel = document.getElementById('educationalPanel');
+            eduPanel.querySelectorAll('.rol-badge').forEach(tag => tag.remove());
+
+            const rolBadge = document.createElement('div');
+            rolBadge.className = 'tag rol-badge';
+            rolBadge.style.marginBottom = '12px';
+
+            const taskInst = document.getElementById('taskInstructions');
+
+            if (rol === 'docente') {
+                rolBadge.textContent = '👨‍🏫 VISTA DE DOCENTE';
+                rolBadge.style.backgroundColor = 'color-mix(in srgb, var(--warning) 18%, transparent)';
+                rolBadge.style.color = 'var(--warning)';
+                taskInst.textContent = "Sube deberes o guías y califica las entregas de los estudiantes.";
+            } else {
+                rolBadge.textContent = '🎓 VISTA DE ESTUDIANTE';
+                taskInst.textContent = "Descarga las guías y sube tu informe resuelto para calificación.";
+            }
+
+            eduPanel.insertBefore(rolBadge, eduPanel.children[1]);
+
+            document.getElementById('materialPanel').style.display = 'block';
+            document.getElementById('taskPanel').style.display = 'block';
+            document.getElementById('chatPanel').style.display = 'block';
+        }
+
+        function iniciarSistemas(user) {
+            // A. CHAT EN TIEMPO REAL
+            const chatBox = document.getElementById('chatBox');
+            const chatInput = document.getElementById('chatInput');
+            const sendMsgBtn = document.getElementById('sendMsgBtn');
+
+            const qChat = query(collection(window.firebaseDb, "chat"), orderBy("fecha", "asc"));
+            unsubscribeChat = onSnapshot(qChat, (snapshot) => {
+                chatBox.innerHTML = '';
+                if (snapshot.empty) {
+                    chatBox.innerHTML = '<div class="empty-msg">No hay mensajes aún. Inicia la conversación.</div>';
+                    return;
+                }
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const isMine = data.email === user.email;
+                    const div = document.createElement('div');
+                    div.style.fontSize = '11px';
+                    div.style.background = isMine ? 'color-mix(in srgb, var(--primary) 16%, transparent)' : 'var(--surface-2)';
+                    div.style.padding = '7px 10px';
+                    div.style.borderRadius = '8px';
+                    div.style.borderLeft = isMine ? '3px solid var(--primary)' : '3px solid var(--accent-2)';
+                    div.innerHTML = `<strong>${data.usuario}</strong><br><span style="color:var(--muted);">${data.mensaje}</span>`;
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, (err) => {
+                console.error("Error leyendo chat:", err);
+                chatBox.innerHTML = `<div class="empty-msg" style="color:var(--warning);">Revisa los permisos de Firestore en Firebase.</div>`;
+            });
+
+            async function enviarMensaje() {
+                const msg = chatInput.value.trim();
+                if (!msg) return;
+                chatInput.value = '';
+                try {
                     await addDoc(collection(window.firebaseDb, "chat"), {
                         usuario: user.displayName,
                         email: user.email,
                         mensaje: msg,
                         fecha: new Date()
                     });
-                    chatInput.value = '';
-                };
+                } catch (err) {
+                    console.error("Error enviando mensaje:", err);
+                    alert("No se pudo enviar el mensaje. Verifica las reglas de Firestore.");
+                }
+            }
 
-                // 2. GESTIÓN DE ARCHIVOS
-                const fileInput = document.getElementById('fileInput');
-                const uploadFileBtn = document.getElementById('uploadFileBtn');
-                const fileList = document.getElementById('fileList');
+            sendMsgBtn.onclick = enviarMensaje;
+            chatInput.onkeydown = (e) => {
+                if (e.key === 'Enter') enviarMensaje();
+            };
 
-                const qFiles = query(collection(window.firebaseDb, "archivos"), orderBy("fecha", "desc"));
-                unsubscribeFiles = onSnapshot(qFiles, (snapshot) => {
-                    fileList.innerHTML = '';
-                    if(snapshot.empty) {
-                        fileList.innerHTML = '<li style="color: var(--muted); font-style: italic;">No hay archivos aún.</li>';
-                        return;
+            // B. GESTIÓN DE ARCHIVOS Y CALIFICACIONES
+            const fileInput = document.getElementById('fileInput');
+            const uploadFileBtn = document.getElementById('uploadFileBtn');
+            const fileList = document.getElementById('fileList');
+
+            const qFiles = query(collection(window.firebaseDb, "archivos"), orderBy("fecha", "desc"));
+            unsubscribeFiles = onSnapshot(qFiles, (snapshot) => {
+                fileList.innerHTML = '';
+                if (snapshot.empty) {
+                    fileList.innerHTML = '<li class="empty-msg">No hay archivos subidos aún.</li>';
+                    return;
+                }
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const fileId = docSnap.id;
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+
+                    const notaHTML = data.calificacion !== undefined && data.calificacion !== null
+                        ? `<div class="grade-badge">Calificación: ${data.calificacion} / 10</div>`
+                        : `<div class="grade-badge" style="opacity:0.65;">Pendiente de revisión</div>`;
+
+                    li.innerHTML = `
+                        <a href="${data.url}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+                            📄 ${data.nombre}
+                        </a>
+                        <div style="color: var(--muted); font-size: 10px;">
+                            Subido por: ${data.subidoPor} (${data.rolAutor || 'usuario'})
+                        </div>
+                        ${notaHTML}
+                    `;
+
+                    // Si el usuario actual es DOCENTE, mostrar controles para calificar
+                    if (currentUserRole === 'docente') {
+                        const gradeRow = document.createElement('div');
+                        gradeRow.className = 'grade-row';
+                        gradeRow.innerHTML = `
+                            <input type="number" min="0" max="10" step="0.5" placeholder="Nota (0-10)" value="${data.calificacion ?? ''}" style="width: 90px; padding: 4px 6px; font-size: 11px;">
+                            <button class="mini-button">Calificar</button>
+                        `;
+                        const gradeInput = gradeRow.querySelector('input');
+                        const gradeBtn = gradeRow.querySelector('button');
+                        gradeBtn.onclick = async () => {
+                            const val = parseFloat(gradeInput.value);
+                            if (isNaN(val) || val < 0 || val > 10) {
+                                alert("Ingresa una calificación válida entre 0 y 10.");
+                                return;
+                            }
+                            gradeBtn.textContent = "Guardando...";
+                            try {
+                                await updateDoc(doc(window.firebaseDb, "archivos", fileId), {
+                                    calificacion: val,
+                                    calificadoPor: user.displayName
+                                });
+                                gradeBtn.textContent = "¡Guardado!";
+                                setTimeout(() => { gradeBtn.textContent = "Calificar"; }, 1200);
+                            } catch (err) {
+                                console.error("Error calificando:", err);
+                                alert("No se pudo guardar la calificación.");
+                                gradeBtn.textContent = "Calificar";
+                            }
+                        };
+                        li.appendChild(gradeRow);
                     }
-                    snapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const li = document.createElement('li');
-                        li.style.marginBottom = '8px';
-                        li.style.paddingBottom = '8px';
-                        li.style.borderBottom = '1px solid var(--line)';
-                        li.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📄 ${data.nombre}</a><br><span style="color: var(--muted); font-size: 9px;">Subido por ${data.subidoPor}</span>`;
-                        fileList.appendChild(li);
-                    });
+
+                    fileList.appendChild(li);
                 });
+            });
 
-                uploadFileBtn.onclick = () => {
-                    const file = fileInput.files[0];
-                    if(!file) return alert("Por favor, selecciona un archivo primero.");
-                    
-                    uploadFileBtn.textContent = "Subiendo...";
-                    uploadFileBtn.disabled = true;
+            uploadFileBtn.onclick = () => {
+                const file = fileInput.files[0];
+                if (!file) {
+                    alert("Selecciona un archivo primero.");
+                    return;
+                }
 
-                    const storageRef = ref(window.firebaseStorage, 'archivos/' + file.name);
-                    const uploadTask = uploadBytesResumable(storageRef, file);
+                uploadFileBtn.textContent = "Subiendo...";
+                uploadFileBtn.disabled = true;
 
-                    uploadTask.on('state_changed', 
-                        null, 
-                        (error) => {
-                            console.error(error);
-                            alert("Error al subir el archivo.");
-                            uploadFileBtn.textContent = "Subir Archivo";
-                            uploadFileBtn.disabled = false;
-                        }, 
-                        async () => {
+                const storageRef = ref(window.firebaseStorage, `archivos/${Date.now()}_${file.name}`);
+                const uploadTask = uploadBytesResumable(storageRef, file);
+
+                uploadTask.on('state_changed',
+                    null,
+                    (error) => {
+                        console.error("Error Storage:", error);
+                        alert("Error al subir el archivo. Verifica que Firebase Storage esté activo en modo de prueba.");
+                        uploadFileBtn.textContent = "Subir Archivo";
+                        uploadFileBtn.disabled = false;
+                    },
+                    async () => {
+                        try {
                             const url = await getDownloadURL(uploadTask.snapshot.ref);
                             await addDoc(collection(window.firebaseDb, "archivos"), {
                                 nombre: file.name,
                                 url: url,
                                 subidoPor: user.displayName,
                                 email: user.email,
+                                rolAutor: currentUserRole,
+                                calificacion: null,
                                 fecha: new Date()
                             });
                             fileInput.value = '';
+                        } catch (err) {
+                            console.error("Error guardando metadatos:", err);
+                            alert("El archivo subió pero no se registró en Firestore.");
+                        } finally {
                             uploadFileBtn.textContent = "Subir Archivo";
                             uploadFileBtn.disabled = false;
                         }
-                    );
-                };
-            }
-
-            window.onAuthStateChanged(window.firebaseAuth, async (user) => {
-                if (user) {
-                    loginBtn.style.display = 'none';
-                    userInfo.style.display = 'flex';
-                    userName.textContent = user.displayName;
-                    userPhoto.src = user.photoURL;
-                    
-                    const rol = await checkUserRole(user);
-                    aplicarRolVisual(rol);
-                    iniciarSistemas(user);
-
-                } else {
-                    loginBtn.style.display = 'block';
-                    userInfo.style.display = 'none';
-                    document.getElementById('taskPanel').style.display = 'none';
-                    document.getElementById('chatPanel').style.display = 'none';
-                    document.getElementById('materialPanel').style.display = 'none';
-                    
-                    const rolBadge = document.querySelector('.rol-badge');
-                    if (rolBadge) rolBadge.remove();
-
-                    if(unsubscribeChat) unsubscribeChat();
-                    if(unsubscribeFiles) unsubscribeFiles();
-                }
-            });
-
-            loginBtn.addEventListener('click', () => { window.signInWithPopup(window.firebaseAuth, window.googleProvider).catch(console.error); });
-            logoutBtn.addEventListener('click', () => { window.signOut(window.firebaseAuth); });
+                    }
+                );
+            };
         }
-    }, 1000);
 
-    // INICIO
+        window.onAuthStateChanged(window.firebaseAuth, async (user) => {
+            if (user) {
+                loginBtn.style.display = 'none';
+                userInfo.style.display = 'flex';
+                userName.textContent = user.displayName;
+                userPhoto.src = user.photoURL;
+
+                const rol = await checkUserRole(user);
+                aplicarRolVisual(rol);
+                iniciarSistemas(user);
+            } else {
+                loginBtn.style.display = 'inline-flex';
+                userInfo.style.display = 'none';
+                document.getElementById('materialPanel').style.display = 'none';
+                document.getElementById('taskPanel').style.display = 'none';
+                document.getElementById('chatPanel').style.display = 'none';
+                document.querySelectorAll('.rol-badge').forEach(tag => tag.remove());
+
+                if (unsubscribeChat) unsubscribeChat();
+                if (unsubscribeFiles) unsubscribeFiles();
+            }
+        });
+
+        loginBtn.addEventListener('click', () => {
+            window.signInWithPopup(window.firebaseAuth, window.googleProvider).catch((err) => {
+                console.error("Error de login:", err);
+                alert("No se pudo iniciar sesión: " + err.message);
+            });
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            window.signOut(window.firebaseAuth);
+        });
+    }, 800);
+
+    // INICIALIZACIÓN
     resizeCanvas();
     initCharts();
     calculatePhysics();
     requestAnimationFrame(draw);
-    setInterval(() => { if(!state.isPaused) updateCharts() }, 1000);
+    setInterval(() => {
+        if (!state.isPaused) updateCharts();
+    }, 1000);
 });
