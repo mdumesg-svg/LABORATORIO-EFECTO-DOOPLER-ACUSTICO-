@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Simulador avanzado del efecto Doppler acústico">
+    <meta name="description" content="Simulador avanzado del efecto Doppler acústico y aula virtual">
     <title>Simulador Interactivo | Efecto Doppler</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
-    
     <script src="script.js" defer></script>
 </head>
 
@@ -36,13 +37,12 @@
             </select>
         </label>
         
-        <!-- PANEL DE USUARIO -->
-        <div id="userPanel" style="display: flex; align-items: center; gap: 10px; margin-left: 15px; padding-left: 15px; border-left: 1px solid var(--line);">
+        <div id="userPanel" class="user-panel">
             <button class="btn btn-primary" id="loginBtn">Ingresar con Google</button>
             <div id="userInfo" style="display: none; align-items: center; gap: 8px;">
-                <img id="userPhoto" src="" alt="Perfil" style="width: 32px; height: 32px; border-radius: 50%;">
-                <span id="userName" style="font-size: 12px; font-weight: 600;"></span>
-                <button class="btn btn-outline" id="logoutBtn" style="padding: 5px 8px; font-size: 10px;">Salir</button>
+                <img id="userPhoto" src="" alt="Perfil">
+                <span id="userName"></span>
+                <button class="btn btn-outline btn-sm" id="logoutBtn">Salir</button>
             </div>
         </div>
     </div>
@@ -59,7 +59,7 @@
         <div class="sound-icon">)))</div>
     </section>
 
-    <!-- RESULTADOS PRINCIPALES -->
+    <!-- MÉTRICAS PRINCIPALES -->
     <section class="metrics-grid">
         <article class="metric-card">
             <span>Velocidad del sonido</span>
@@ -68,8 +68,8 @@
         </article>
         <article class="metric-card accent">
             <span>Frecuencia percibida</span>
-            <strong id="observedFrequencyValue">440 <small>Hz</small></strong>
-            <em id="frequencyState">Sin movimiento relativo</em>
+            <strong id="observedFrequencyValue">440.0 <small>Hz</small></strong>
+            <em id="frequencyState">Acercamiento relativo</em>
         </article>
         <article class="metric-card">
             <span>Longitud de onda emitida</span>
@@ -78,15 +78,15 @@
         </article>
         <article class="metric-card">
             <span>Variación de frecuencia</span>
-            <strong id="frequencyDeltaValue">0.0 <small>%</small></strong>
+            <strong id="frequencyDeltaValue">+6.2 <small>%</small></strong>
             <em>Respecto a la fuente</em>
         </article>
     </section>
 
-    <!-- ÁREA DE TRABAJO -->
+    <!-- ÁREA DE TRABAJO (3 COLUMNAS) -->
     <div class="workspace">
 
-        <!-- 1. PANEL IZQUIERDO: CONTROLES -->
+        <!-- COLUMNA 1: CONTROLES -->
         <aside class="panel controls-panel">
             <div class="section-heading">
                 <div>
@@ -98,7 +98,7 @@
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="frequency">Frecuencia emitida</label>
+                    <label for="frequency">Frecuencia emitida (f)</label>
                     <output id="frequencyOut">440 Hz</output>
                 </div>
                 <input type="range" id="frequency" min="100" max="1200" step="10" value="440">
@@ -107,7 +107,7 @@
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="sourceVelocity">Velocidad de la fuente</label>
+                    <label for="sourceVelocity">Velocidad de la fuente (vₛ)</label>
                     <output id="sourceVelocityOut">20 m/s</output>
                 </div>
                 <input type="range" id="sourceVelocity" min="-250" max="250" step="1" value="20">
@@ -116,7 +116,7 @@
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="receiverVelocity">Velocidad del receptor</label>
+                    <label for="receiverVelocity">Velocidad del receptor (vᵣ)</label>
                     <output id="receiverVelocityOut">0 m/s</output>
                 </div>
                 <input type="range" id="receiverVelocity" min="-100" max="100" step="1" value="0">
@@ -125,7 +125,7 @@
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="temperature">Temperatura del aire</label>
+                    <label for="temperature">Temperatura del aire (T)</label>
                     <output id="temperatureOut">20 °C</output>
                 </div>
                 <input type="range" id="temperature" min="-10" max="40" step="1" value="20">
@@ -134,15 +134,15 @@
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="amplitude">Amplitud visual</label>
+                    <label for="amplitude">Intensidad visual</label>
                     <output id="amplitudeOut">1.0</output>
                 </div>
-                <input type="range" id="amplitude" min="0.2" max="2" step="0.1" value="1">
+                <input type="range" id="amplitude" min="0.4" max="2" step="0.1" value="1">
             </div>
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="waveScale">Escala de ondas</label>
+                    <label for="waveScale">Velocidad de expansión</label>
                     <output id="waveScaleOut">1.0×</output>
                 </div>
                 <input type="range" id="waveScale" min="0.5" max="2" step="0.1" value="1">
@@ -150,7 +150,7 @@
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="waveSpacing">Separación visual</label>
+                    <label for="waveSpacing">Densidad de frentes</label>
                     <output id="waveSpacingOut">1.0×</output>
                 </div>
                 <input type="range" id="waveSpacing" min="0.5" max="2" step="0.1" value="1">
@@ -169,11 +169,11 @@
             </div>
 
             <div class="notice" id="physicsWarning" style="display:none;">
-                Modelo clásico: velocidades subsónicas respecto al aire.
+                ⚠️ Barrera del sonido alcanzada (Mach ≥ 1): se forma una onda de choque cónica.
             </div>
         </aside>
 
-        <!-- 2. COLUMNA CENTRAL: SIMULADOR Y GRÁFICAS -->
+        <!-- COLUMNA 2: SIMULADOR, GRÁFICAS Y FÓRMULAS -->
         <section class="main-column">
             
             <section class="panel simulation-panel">
@@ -205,6 +205,7 @@
                 </div>
             </section>
 
+            <!-- 5 GRÁFICAS ANALÍTICAS -->
             <section class="panel charts-panel">
                 <div class="section-heading">
                     <div>
@@ -215,27 +216,28 @@
                 <div class="charts-grid">
                     <article class="chart-card">
                         <h3>Frecuencia vs. Vel. Fuente</h3>
-                        <canvas id="chartSource"></canvas>
+                        <div class="chart-box"><canvas id="chartSource"></canvas></div>
                     </article>
                     <article class="chart-card">
-                        <h3>Longitud de onda</h3>
-                        <canvas id="chartWavelength"></canvas>
+                        <h3>Longitud de onda (m)</h3>
+                        <div class="chart-box"><canvas id="chartWavelength"></canvas></div>
                     </article>
                     <article class="chart-card">
                         <h3>Frecuencia Emitida vs Percibida</h3>
-                        <canvas id="chartCompare"></canvas>
+                        <div class="chart-box"><canvas id="chartCompare"></canvas></div>
                     </article>
                     <article class="chart-card">
                         <h3>Límite supersónico (Mach 1)</h3>
-                        <canvas id="chartSpeed"></canvas>
+                        <div class="chart-box"><canvas id="chartSpeed"></canvas></div>
                     </article>
                     <article class="chart-card wide-chart">
-                        <h3>Historial temporal de frecuencia percibida</h3>
-                        <canvas id="chartTime"></canvas>
+                        <h3>Historial temporal de frecuencia percibida (Hz)</h3>
+                        <div class="chart-box"><canvas id="chartTime"></canvas></div>
                     </article>
                 </div>
             </section>
 
+            <!-- 5 FÓRMULAS Y PROCEDIMIENTOS -->
             <section class="panel formulas-panel">
                 <div class="section-heading">
                     <div>
@@ -290,7 +292,7 @@
             </section>
         </section>
 
-        <!-- 3. PANEL DERECHO: RECURSOS, TAREAS Y CHAT -->
+        <!-- COLUMNA 3: AULA VIRTUAL Y LMS -->
         <aside class="panel educational-panel" id="educationalPanel">
             
             <div class="section-heading">
@@ -303,13 +305,13 @@
             <div class="edu-section">
                 <h3>📚 Fundamento Teórico</h3>
                 <p class="concept-text">
-                    El <strong>Efecto Doppler</strong> es el cambio en la frecuencia percibida de cualquier movimiento ondulatorio cuando el emisor, o el observador, se desplazan uno respecto al otro.
+                    El <strong>Efecto Doppler</strong> es el cambio en la frecuencia percibida de una onda cuando existe movimiento relativo entre la fuente emisora y el receptor.
                 </p>
                 <ul class="concept-list">
-                    <li><strong>Acercamiento:</strong> Los frentes de onda se comprimen frente a la fuente (menor λ). La frecuencia percibida (f') aumenta (sonido más agudo).</li>
-                    <li><strong>Alejamiento:</strong> Las ondas se separan detrás de la fuente (mayor λ). La frecuencia disminuye (sonido más grave).</li>
+                    <li><strong>Acercamiento:</strong> Los frentes de onda se comprimen delante de la fuente (menor λ) y la frecuencia percibida (f′) aumenta (tono más agudo).</li>
+                    <li><strong>Alejamiento:</strong> Los frentes de onda se expanden detrás de la fuente (mayor λ) y la frecuencia percibida disminuye (tono más grave).</li>
                 </ul>
-                <div class="literature-note">Basado en literatura científica estándar de acústica clásica.</div>
+                <div class="literature-note">Basado en principios de acústica clásica en medios homogéneos.</div>
             </div>
 
             <div class="edu-section">
@@ -317,57 +319,55 @@
                 <div class="exercise-card">
                     <h4>Reto 1: El tren en la estación</h4>
                     <p>Un tren emite un silbato a 500 Hz acercándose a 30 m/s hacia un pasajero en reposo. ¿Cuál es la frecuencia que escucha el pasajero?</p>
-                    <button class="mini-button btn-load-ex" data-f="500" data-vs="30" data-vr="0">Cargar variables</button>
+                    <button class="mini-button btn-load-ex" data-f="500" data-vs="30" data-vr="0" data-t="20">Cargar variables</button>
                 </div>
                 <div class="exercise-card">
                     <h4>Reto 2: Persecución en la vía</h4>
-                    <p>Una patrulla (fuente) viaja a 40 m/s persiguiendo un auto (receptor) que huye a 25 m/s. Ajusta la temperatura a 25°C. Analiza el desplazamiento porcentual.</p>
+                    <p>Una patrulla (fuente) viaja a 40 m/s persiguiendo un auto (receptor) que avanza a 25 m/s a 25 °C. Analiza el desplazamiento porcentual.</p>
                     <button class="mini-button btn-load-ex" data-f="800" data-vs="40" data-vr="25" data-t="25">Cargar variables</button>
                 </div>
             </div>
 
-            <!-- NUEVO: MATERIAL DE CLASE (Oculto por defecto, se activa con Login) -->
+            <!-- MATERIAL DE CLASE (Visible al iniciar sesión) -->
             <div class="edu-section" id="materialPanel" style="display: none;">
                 <h3>📖 Material de Clase</h3>
                 <div class="resource-links">
-                    <button class="btn btn-outline resource-btn" onclick="alert('Descargando Guía Práctica de Laboratorio (PDF)...')">
+                    <a href="rubrica.pdf" target="_blank" class="btn btn-outline resource-btn">
                         📄 Rúbrica de Laboratorio
-                    </button>
-                    <button class="btn btn-outline resource-btn" onclick="alert('Abriendo Cuadernillo de Ejercicios...')">
+                    </a>
+                    <a href="cuadernillo.pdf" target="_blank" class="btn btn-outline resource-btn">
                         📓 Cuadernillo de Actividades
-                    </button>
+                    </a>
                 </div>
             </div>
 
-            <!-- SECCIÓN DE TAREAS Y ARCHIVOS (Oculta por defecto) -->
-            <div class="edu-section highlight-section" id="taskPanel" style="display: none; background: color-mix(in srgb, var(--accent-2) 10%, transparent); margin: 15px -20px 0; border-radius: 0;">
-                <h3>📂 Gestor de Tareas</h3>
-                <p class="concept-text" id="taskInstructions">Inicia sesión para ver las asignaciones de la clase.</p>
+            <!-- GESTOR DE TAREAS Y CALIFICACIONES (Visible al iniciar sesión) -->
+            <div class="edu-section highlight-section" id="taskPanel" style="display: none;">
+                <h3>📂 Tareas y Calificaciones</h3>
+                <p class="concept-text" id="taskInstructions">Sube tu informe o descarga las guías asignadas.</p>
                 
-                <div class="url-row" style="margin-bottom: 10px;">
-                    <input type="file" id="fileInput" style="font-size: 10px; background: transparent; border: none; flex: 1;">
-                    <button class="btn btn-primary" id="uploadFileBtn" style="padding: 6px 12px; font-size: 10px;">Subir Archivo</button>
+                <div class="upload-box">
+                    <input type="file" id="fileInput">
+                    <button class="btn btn-primary btn-sm" id="uploadFileBtn">Subir Archivo</button>
                 </div>
                 
-                <div style="background: var(--surface-2); padding: 10px; border-radius: 8px; max-height: 120px; overflow-y: auto;">
-                    <h4 style="font-size: 10px; margin: 0 0 5px; color: var(--muted);">Archivos compartidos de la clase:</h4>
-                    <ul id="fileList" style="list-style: none; padding: 0; margin: 0; font-size: 10px;">
-                        <li style="color: var(--muted); font-style: italic;">No hay archivos aún.</li>
+                <div class="files-container">
+                    <h4>Archivos y entregas de la clase:</h4>
+                    <ul id="fileList">
+                        <li class="empty-msg">Cargando archivos...</li>
                     </ul>
                 </div>
             </div>
 
-            <!-- CHAT EN TIEMPO REAL (Oculto por defecto) -->
-            <div class="edu-section highlight-section" id="chatPanel" style="display: none; margin-top: 0; padding-top: 10px;">
+            <!-- CHAT EN TIEMPO REAL (Visible al iniciar sesión) -->
+            <div class="edu-section highlight-section" id="chatPanel" style="display: none;">
                 <h3>💬 Chat de la Clase</h3>
-                
-                <div id="chatBox" style="background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; height: 180px; overflow-y: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="text-align: center; color: var(--muted); font-size: 10px;">Bienvenido al chat. Escribe tu duda.</div>
+                <div id="chatBox">
+                    <div class="empty-msg">Bienvenido al chat. Escribe tu consulta.</div>
                 </div>
-
                 <div class="url-row">
-                    <input type="text" id="chatInput" placeholder="Escribe un mensaje..." style="flex: 1;">
-                    <button class="btn btn-primary" id="sendMsgBtn">Enviar</button>
+                    <input type="text" id="chatInput" placeholder="Escribe un mensaje...">
+                    <button class="btn btn-primary btn-sm" id="sendMsgBtn">Enviar</button>
                 </div>
             </div>
 
@@ -381,7 +381,7 @@
                 <span class="eyebrow">DATOS DE LA EXPERIENCIA</span>
                 <h2>Resumen de mediciones</h2>
             </div>
-            <button class="btn btn-primary excel-btn" id="exportExcelBtn">Descargar datos a Excel (.CSV)</button>
+            <button class="btn btn-primary" id="exportExcelBtn">Descargar datos a Excel (.CSV)</button>
         </div>
         <div class="table-scroll">
             <table>
@@ -395,11 +395,11 @@
 
 </main>
 
-<!-- CONEXIÓN A FIREBASE Y LIBRERÍAS DE PLATAFORMA -->
+<!-- CONEXIÓN A FIREBASE -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
   const firebaseConfig = {
@@ -424,7 +424,7 @@
   window.signInWithPopup = signInWithPopup;
   window.signOut = signOut;
   window.onAuthStateChanged = onAuthStateChanged;
-  window.firestoreAPI = { doc, getDoc, setDoc, collection, addDoc, onSnapshot, query, orderBy };
+  window.firestoreAPI = { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy };
   window.storageAPI = { ref, uploadBytesResumable, getDownloadURL, listAll };
 </script>
 
