@@ -1,5 +1,5 @@
 /**
- * SIMULADOR DE EFECTO DOPPLER ACÚSTICO Y AULA VIRTUAL (LMS)
+ * SIMULADOR DE EFECTO DOPPLER ACÚSTICO Y AULA VIRTUAL SINCRÓNICA (LMS)
  * UNEMI - Laboratorio Virtual de Física (Plan Gratuito Spark)
  */
 
@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let gainNode = null;
     let isAudioPlaying = false;
     let charts = {};
+    let isApplyingRemoteSync = false;
 
     const inputs = {
         frequency: document.getElementById('frequency'),
@@ -195,6 +196,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFormulas(delta, num, denom);
         updateDataTable();
         updateCharts();
+
+        if (!isApplyingRemoteSync && typeof window.broadcastSimulatorState === 'function') {
+            window.broadcastSimulatorState();
+        }
     }
 
     function updateFormulas(delta, num, denom) {
@@ -502,9 +507,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
 
     // ==========================================
-    // 7. FIREBASE: ROLES, MATERIALES, TAREAS, CHAT, ELIMINACIÓN SINCRONIZADA Y NOTIFICACIONES
+    // 7. FIREBASE: ROLES, CLASE EN VIVO, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES
     // ==========================================
-    const MAX_FIRESTORE_FILE_BYTES = 700 * 1024; // 700 KB para plan gratuito Spark
+    const MAX_FIRESTORE_FILE_BYTES = 700 * 1024;
+    const JITSI_ROOM_NAME = "LaboratorioFisicaUNEMIDoppler";
 
     function escapeHTML(str) {
         return String(str)
@@ -544,13 +550,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showToastNotification(title, message) {
+    function showToastNotification(title, message, targetId = 'chatPanel') {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
         toast.innerHTML = `<strong>🔔 ${escapeHTML(title)}</strong><span>${escapeHTML(message)}</span>`;
         toast.onclick = () => {
-            document.getElementById('chatPanel').scrollIntoView({ behavior: 'smooth' });
+            const el = document.getElementById(targetId);
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
             toast.remove();
         };
         container.appendChild(toast);
@@ -576,8 +583,59 @@ document.addEventListener('DOMContentLoaded', () => {
         let unsubscribeFiles = null;
         let unsubscribeRubrica = null;
         let unsubscribeCuadernillo = null;
+        let unsubscribeLiveClass = null;
         let currentUserRole = 'estudiante';
         let unreadCount = 0;
+        let jitsiApi = null;
+        let syncTimer = null;
+
+        function cerrarJitsi() {
+            if (jitsiApi) {
+                try { jitsiApi.dispose(); } catch (e) {}
+                jitsiApi = null;
+            }
+            const container = document.getElementById('jitsiContainer');
+            container.innerHTML = '';
+            container.style.display = 'none';
+            document.getElementById('jitsiFallbackBar').style.display = 'none';
+        }
+
+        function abrirJitsi(user) {
+            const container = document.getElementById('jitsiContainer');
+            const fallbackBar = document.getElementById('jitsiFallbackBar');
+            container.style.display = 'block';
+            fallbackBar.style.display = 'block';
+
+            if (jitsiApi) return;
+
+            if (typeof window.JitsiMeetExternalAPI === 'function') {
+                jitsiApi = new window.JitsiMeetExternalAPI("meet.jit.si", {
+                    roomName: JITSI_ROOM_NAME,
+                    width: "100%",
+                    height: 460,
+                    parentNode: container,
+                    userInfo: {
+                        displayName: user.displayName,
+                        email: user.email
+                    },
+                    configOverwrite: {
+                        startWithAudioMuted: currentUserRole !== 'docente',
+                        startWithVideoMuted: currentUserRole !== 'docente',
+                        prejoinPageEnabled: false
+                    }
+                });
+
+                jitsiApi.addListener('videoConferenceLeft', () => {
+                    cerrarJitsi();
+                    if (currentUserRole === 'estudiante') {
+                        document.getElementById('joinJitsiBtn').style.display = 'inline-flex';
+                        document.getElementById('leaveJitsiBtn').style.display = 'none';
+                    }
+                });
+            } else {
+                container.innerHTML = `<iframe src="https://meet.jit.si/${JITSI_ROOM_NAME}#userInfo.displayName=%22${encodeURIComponent(user.displayName)}%22" allow="camera; microphone; fullscreen; display-capture; autoplay" style="width:100%; height:460px; border:0;"></iframe>`;
+            }
+        }
 
         async function checkUserRole(user) {
             const userRef = doc(window.firebaseDb, "usuarios", user.email);
@@ -606,6 +664,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const taskInst = document.getElementById('taskInstructions');
             const teacherUploadBox = document.getElementById('teacherMaterialUpload');
+            const teacherLiveCtrl = document.getElementById('teacherLiveControls');
+            const studentLiveCtrl = document.getElementById('studentLiveControls');
 
             if (rol === 'docente') {
                 rolBadge.textContent = '👨‍🏫 VISTA DE DOCENTE';
@@ -613,14 +673,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 rolBadge.style.color = 'var(--warning)';
                 taskInst.textContent = "Sube deberes o guías (aparecerán en el chat) y califica las entregas.";
                 teacherUploadBox.style.display = 'flex';
+                teacherLiveCtrl.style.display = 'flex';
+                studentLiveCtrl.style.display = 'none';
             } else {
                 rolBadge.textContent = '🎓 VISTA DE ESTUDIANTE';
                 taskInst.textContent = "Sube tu tarea resuelta; se enviará al chat y quedará lista para calificación.";
                 teacherUploadBox.style.display = 'none';
+                teacherLiveCtrl.style.display = 'none';
+                studentLiveCtrl.style.display = 'flex';
             }
 
             eduPanel.insertBefore(rolBadge, eduPanel.children[1]);
 
+            document.getElementById('liveClassPanel').style.display = 'block';
             document.getElementById('materialPanel').style.display = 'block';
             document.getElementById('taskPanel').style.display = 'block';
             document.getElementById('chatPanel').style.display = 'block';
@@ -629,6 +694,219 @@ document.addEventListener('DOMContentLoaded', () => {
         function iniciarSistemas(user) {
             if ("Notification" in window && Notification.permission === "default") {
                 Notification.requestPermission();
+            }
+
+            // ==========================================
+            // 0. CLASE VIRTUAL EN VIVO Y MODO CLASE GUIADA
+            // ==========================================
+            const liveDocRef = doc(window.firebaseDb, "clase_vivo", "estado");
+            const liveStatusBadge = document.getElementById('liveStatusBadge');
+            const toggleLiveClassBtn = document.getElementById('toggleLiveClassBtn');
+            const syncSimulatorToggle = document.getElementById('syncSimulatorToggle');
+            const externalMeetInput = document.getElementById('externalMeetInput');
+            const saveExternalMeetBtn = document.getElementById('saveExternalMeetBtn');
+            const clearExternalMeetBtn = document.getElementById('clearExternalMeetBtn');
+            const studentLiveText = document.getElementById('studentLiveText');
+            const joinJitsiBtn = document.getElementById('joinJitsiBtn');
+            const leaveJitsiBtn = document.getElementById('leaveJitsiBtn');
+            const externalMeetBar = document.getElementById('externalMeetBar');
+            const externalMeetLinkBtn = document.getElementById('externalMeetLinkBtn');
+            const guidedSyncNotice = document.getElementById('guidedSyncNotice');
+
+            let isClassActive = false;
+            let wasClassActive = false;
+
+            window.broadcastSimulatorState = () => {
+                if (currentUserRole !== 'docente' || !syncSimulatorToggle.checked) return;
+                clearTimeout(syncTimer);
+                syncTimer = setTimeout(async () => {
+                    try {
+                        await setDoc(liveDocRef, {
+                            syncSimulador: true,
+                            docente: user.displayName,
+                            simState: {
+                                f: state.f,
+                                vS: state.vS,
+                                vR: state.vR,
+                                T: state.T,
+                                amplitude: state.amplitude,
+                                waveScale: state.waveScale,
+                                waveSpacing: state.waveSpacing,
+                                directionMode: inputs.directionMode.value
+                            },
+                            actualizado: new Date()
+                        }, { merge: true });
+                    } catch (err) {
+                        console.error("Error sincronizando simulador:", err);
+                    }
+                }, 150);
+            };
+
+            unsubscribeLiveClass = onSnapshot(liveDocRef, (snap) => {
+                const data = snap.exists() ? snap.data() : {};
+                isClassActive = Boolean(data.activa);
+
+                if (isClassActive) {
+                    liveStatusBadge.textContent = `🔴 EN VIVO (${data.docente || 'Docente'})`;
+                    liveStatusBadge.style.backgroundColor = 'color-mix(in srgb, var(--warning) 22%, transparent)';
+                    liveStatusBadge.style.color = 'var(--warning)';
+
+                    if (currentUserRole === 'docente') {
+                        toggleLiveClassBtn.textContent = '⏹️ Finalizar Videollamada';
+                        toggleLiveClassBtn.classList.replace('btn-primary', 'btn-outline');
+                    } else {
+                        studentLiveText.textContent = `El docente ${data.docente || ''} está transmitiendo en vivo.`;
+                        if (!jitsiApi && document.getElementById('jitsiContainer').style.display === 'none') {
+                            joinJitsiBtn.style.display = 'inline-flex';
+                            leaveJitsiBtn.style.display = 'none';
+                        }
+                        if (!wasClassActive) {
+                            playNotificationSound();
+                            showToastNotification("Clase en Vivo Iniciada", "Haz clic aquí para unirte a la videollamada.", "liveClassPanel");
+                        }
+                    }
+                } else {
+                    liveStatusBadge.textContent = '⚪ Sala en espera';
+                    liveStatusBadge.style.backgroundColor = '';
+                    liveStatusBadge.style.color = '';
+
+                    if (currentUserRole === 'docente') {
+                        toggleLiveClassBtn.textContent = '🎥 Iniciar Videollamada en la App';
+                        toggleLiveClassBtn.classList.replace('btn-outline', 'btn-primary');
+                    } else {
+                        studentLiveText.textContent = 'El docente aún no ha iniciado la transmisión en vivo.';
+                        joinJitsiBtn.style.display = 'none';
+                        leaveJitsiBtn.style.display = 'none';
+                        cerrarJitsi();
+                    }
+                }
+                wasClassActive = isClassActive;
+
+                // Enlace externo opcional (Google Meet / Zoom)
+                if (data.enlaceExterno) {
+                    externalMeetBar.style.display = 'block';
+                    externalMeetLinkBtn.href = data.enlaceExterno;
+                    if (currentUserRole === 'docente') {
+                        externalMeetInput.value = data.enlaceExterno;
+                        clearExternalMeetBtn.style.display = 'inline-flex';
+                    }
+                } else {
+                    externalMeetBar.style.display = 'none';
+                    if (currentUserRole === 'docente') {
+                        clearExternalMeetBtn.style.display = 'none';
+                    }
+                }
+
+                // Modo Clase Guiada (Simulador sincronizado)
+                if (currentUserRole === 'docente') {
+                    syncSimulatorToggle.checked = Boolean(data.syncSimulador);
+                } else {
+                    if (data.syncSimulador && data.simState) {
+                        guidedSyncNotice.style.display = 'block';
+                        isApplyingRemoteSync = true;
+                        inputs.frequency.value = data.simState.f;
+                        inputs.sourceVelocity.value = data.simState.vS;
+                        inputs.receiverVelocity.value = data.simState.vR;
+                        inputs.temperature.value = data.simState.T;
+                        inputs.amplitude.value = data.simState.amplitude;
+                        inputs.waveScale.value = data.simState.waveScale;
+                        inputs.waveSpacing.value = data.simState.waveSpacing;
+                        inputs.directionMode.value = data.simState.directionMode || 'custom';
+                        calculatePhysics();
+                        isApplyingRemoteSync = false;
+                    } else {
+                        guidedSyncNotice.style.display = 'none';
+                    }
+                }
+            });
+
+            if (currentUserRole === 'docente') {
+                toggleLiveClassBtn.onclick = async () => {
+                    const nuevoEstado = !isClassActive;
+                    toggleLiveClassBtn.disabled = true;
+                    try {
+                        await setDoc(liveDocRef, {
+                            activa: nuevoEstado,
+                            docente: user.displayName,
+                            actualizado: new Date()
+                        }, { merge: true });
+
+                        if (nuevoEstado) {
+                            abrirJitsi(user);
+                            await addDoc(collection(window.firebaseDb, "chat"), {
+                                usuario: user.displayName,
+                                email: user.email,
+                                mensaje: `🎥 El docente ${user.displayName} inició la clase virtual en vivo en el panel superior.`,
+                                esSistema: true,
+                                fecha: new Date()
+                            });
+                        } else {
+                            cerrarJitsi();
+                        }
+                    } catch (err) {
+                        console.error("Error cambiando estado de clase en vivo:", err);
+                        alert("No se pudo iniciar la sala: " + err.message);
+                    } finally {
+                        toggleLiveClassBtn.disabled = false;
+                    }
+                };
+
+                syncSimulatorToggle.onchange = async () => {
+                    try {
+                        if (syncSimulatorToggle.checked) {
+                            window.broadcastSimulatorState();
+                        } else {
+                            await setDoc(liveDocRef, {
+                                syncSimulador: false,
+                                actualizado: new Date()
+                            }, { merge: true });
+                        }
+                    } catch (err) {
+                        console.error("Error en sincronización:", err);
+                    }
+                };
+
+                saveExternalMeetBtn.onclick = async () => {
+                    const url = externalMeetInput.value.trim();
+                    if (!url) {
+                        alert("Pega primero el enlace de Google Meet o Zoom.");
+                        return;
+                    }
+                    try {
+                        await setDoc(liveDocRef, {
+                            enlaceExterno: url,
+                            docente: user.displayName,
+                            actualizado: new Date()
+                        }, { merge: true });
+                        alert("Enlace de sala externa publicado para toda la clase.");
+                    } catch (err) {
+                        alert("Error guardando enlace: " + err.message);
+                    }
+                };
+
+                clearExternalMeetBtn.onclick = async () => {
+                    try {
+                        await setDoc(liveDocRef, {
+                            enlaceExterno: "",
+                            actualizado: new Date()
+                        }, { merge: true });
+                        externalMeetInput.value = "";
+                    } catch (err) {
+                        alert("Error quitando enlace: " + err.message);
+                    }
+                };
+            } else {
+                joinJitsiBtn.onclick = () => {
+                    abrirJitsi(user);
+                    joinJitsiBtn.style.display = 'none';
+                    leaveJitsiBtn.style.display = 'inline-flex';
+                };
+
+                leaveJitsiBtn.onclick = () => {
+                    cerrarJitsi();
+                    if (isClassActive) joinJitsiBtn.style.display = 'inline-flex';
+                    leaveJitsiBtn.style.display = 'none';
+                };
             }
 
             // A. SINCRONIZACIÓN DE RÚBRICA Y CUADERNILLO (DESCARGA PARA TODOS)
@@ -882,10 +1160,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const fsMod = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
                     const { deleteDoc: delDoc, getDocs, where } = fsMod;
 
-                    // 1. Eliminar el archivo de la colección "archivos"
                     await delDoc(doc(window.firebaseDb, "archivos", fileId));
 
-                    // 2. Buscar y eliminar el mensaje adjunto en la colección "chat"
                     const chatRef = collection(window.firebaseDb, "chat");
                     const qPorId = query(chatRef, where("archivoId", "==", fileId));
                     const snapPorId = await getDocs(qPorId);
@@ -895,7 +1171,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             await delDoc(doc(window.firebaseDb, "chat", msgDoc.id));
                         }
                     } else {
-                        // Respaldo para archivos subidos antes de vincular archivoId
                         const qPorNombre = query(chatRef, where("archivoNombre", "==", fileData.nombre));
                         const snapPorNombre = await getDocs(qPorNombre);
                         for (const msgDoc of snapPorNombre.docs) {
@@ -1072,15 +1347,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 loginBtn.style.display = 'inline-flex';
                 userInfo.style.display = 'none';
+                document.getElementById('liveClassPanel').style.display = 'none';
                 document.getElementById('materialPanel').style.display = 'none';
                 document.getElementById('taskPanel').style.display = 'none';
                 document.getElementById('chatPanel').style.display = 'none';
                 document.querySelectorAll('.rol-badge').forEach(tag => tag.remove());
+                cerrarJitsi();
 
                 if (unsubscribeChat) unsubscribeChat();
                 if (unsubscribeFiles) unsubscribeFiles();
                 if (unsubscribeRubrica) unsubscribeRubrica();
                 if (unsubscribeCuadernillo) unsubscribeCuadernillo();
+                if (unsubscribeLiveClass) unsubscribeLiveClass();
             }
         });
 
