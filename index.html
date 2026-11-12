@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="style.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+    <script src="https://meet.jit.si/external_api.js" defer></script>
     <script src="script.js" defer></script>
 </head>
 
@@ -176,8 +177,66 @@
             </div>
         </aside>
 
-        <!-- COLUMNA 2: SIMULADOR, GRÁFICAS Y FÓRMULAS -->
+        <!-- COLUMNA 2: SALA EN VIVO, SIMULADOR, GRÁFICAS Y FÓRMULAS -->
         <section class="main-column">
+
+            <!-- SALA DE CLASE VIRTUAL EN VIVO (VISIBLE AL INICIAR SESIÓN) -->
+            <section class="panel live-class-panel" id="liveClassPanel" style="display: none;">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">AULA SINCRÓNICA</span>
+                        <h2>Clase Virtual en Vivo</h2>
+                    </div>
+                    <span class="live-badge" id="liveStatusBadge">⚪ Sala en espera</span>
+                </div>
+
+                <!-- CONTROLES EXCLUSIVOS DEL DOCENTE -->
+                <div id="teacherLiveControls" style="display: none; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <button class="btn btn-primary" id="toggleLiveClassBtn">🎥 Iniciar Videollamada en la App</button>
+                        <label class="switch-label" style="margin-left: auto;">
+                            <input type="checkbox" id="syncSimulatorToggle">
+                            <span class="switch"></span>
+                            <span>🎛️ Sincronizar mi simulador con la clase</span>
+                        </label>
+                    </div>
+
+                    <div class="url-row" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <input type="text" id="externalMeetInput" placeholder="Opcional: pega enlace externo de Google Meet / Zoom" style="flex: 1; min-width: 220px;">
+                        <button class="btn btn-outline btn-sm" id="saveExternalMeetBtn">Guardar enlace</button>
+                        <button class="btn btn-outline btn-sm" id="clearExternalMeetBtn" style="display: none;">Quitar enlace</button>
+                    </div>
+                </div>
+
+                <!-- CONTROLES PARA ESTUDIANTES -->
+                <div id="studentLiveControls" style="display: none; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+                    <p id="studentLiveText" class="concept-text" style="margin: 0;">El docente aún no ha iniciado la transmisión en vivo.</p>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="joinJitsiBtn" style="display: none;">🎥 Unirse a Videollamada Aquí</button>
+                        <button class="btn btn-outline" id="leaveJitsiBtn" style="display: none;">Salir del video</button>
+                    </div>
+                </div>
+
+                <!-- BOTÓN ENLACE EXTERNO (MEET / ZOOM) SI EL DOCENTE LO CONFIGURÓ -->
+                <div id="externalMeetBar" style="display: none; margin-top: 10px;">
+                    <a id="externalMeetLinkBtn" href="#" target="_blank" class="btn btn-outline" style="width: 100%; justify-content: center;">
+                        🔗 Abrir Sala Externa (Google Meet / Zoom)
+                    </a>
+                </div>
+
+                <!-- AVISO DE MODO CLASE GUIADA (SIMULADOR SINCRONIZADO) -->
+                <div class="notice" id="guidedSyncNotice" style="display: none; margin-top: 10px;">
+                    📡 <strong>Modo Clase Guiada activo:</strong> el docente está controlando las variables del simulador en tiempo real.
+                </div>
+
+                <!-- CONTENEDOR INCRUSTADO DE VIDEO JITSI -->
+                <div id="jitsiContainer" style="display: none; width: 100%; height: 460px; border-radius: 12px; overflow: hidden; margin-top: 12px; border: 1px solid rgba(145,162,189,0.25);"></div>
+                <div id="jitsiFallbackBar" style="display: none; margin-top: 8px; text-align: right;">
+                    <a href="https://meet.jit.si/LaboratorioFisicaUNEMIDoppler" target="_blank" style="font-size: 12px; color: var(--primary);">
+                        ¿No carga el video? Abrir sala en una pestaña nueva ↗
+                    </a>
+                </div>
+            </section>
             
             <section class="panel simulation-panel">
                 <div class="section-heading">
@@ -424,7 +483,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBUpDSKH5mSWcB46JSFkEBWcZ57Un8iLk",
@@ -446,7 +505,9 @@
   window.signInWithPopup = signInWithPopup;
   window.signOut = signOut;
   window.onAuthStateChanged = onAuthStateChanged;
-  window.firestoreAPI = { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy };
+  window.firestoreAPI = { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, addDoc, onSnapshot, query, orderBy };
+  window.firebaseReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
 </body>
