@@ -1,6 +1,6 @@
 /**
  * SIMULADOR DE EFECTO DOPPLER ACÚSTICO Y AULA VIRTUAL (LMS)
- * UNEMI - Laboratorio Virtual de Física (100% Plan Gratuito Spark)
+ * UNEMI - Laboratorio Virtual de Física (Plan Gratuito Spark)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
 
     // ==========================================
-    // 7. FIREBASE: ROLES, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES (SIN STORAGE)
+    // 7. FIREBASE: ROLES, MATERIALES, TAREAS, CHAT, ELIMINACIÓN SINCRONIZADA Y NOTIFICACIONES
     // ==========================================
     const MAX_FIRESTORE_FILE_BYTES = 700 * 1024; // 700 KB para plan gratuito Spark
 
@@ -559,8 +559,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 6000);
     }
 
-    setTimeout(() => {
+    function iniciarFirebaseCuandoEsteListo() {
+        if (window.firebaseIniciado) return;
         if (!window.firebaseAuth || !window.firestoreAPI) return;
+        window.firebaseIniciado = true;
 
         const loginBtn = document.getElementById('loginBtn');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -866,11 +868,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key === 'Enter') enviarMensaje();
             };
 
-            // C. GESTIÓN DE TAREAS, CALIFICACIONES Y ENVÍO AL CHAT
+            // C. GESTIÓN DE TAREAS, CALIFICACIONES, ELIMINACIÓN SINCRONIZADA Y ENVÍO AL CHAT
             const fileInput = document.getElementById('fileInput');
             const fileUrlInput = document.getElementById('fileUrlInput');
             const uploadFileBtn = document.getElementById('uploadFileBtn');
             const fileList = document.getElementById('fileList');
+
+            async function eliminarArchivo(fileId, fileData, btnEl) {
+                if (!confirm(`¿Eliminar "${fileData.nombre}" de la lista de tareas y del chat?`)) return;
+                btnEl.disabled = true;
+                btnEl.textContent = 'Borrando...';
+                try {
+                    const fsMod = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+                    const { deleteDoc: delDoc, getDocs, where } = fsMod;
+
+                    // 1. Eliminar el archivo de la colección "archivos"
+                    await delDoc(doc(window.firebaseDb, "archivos", fileId));
+
+                    // 2. Buscar y eliminar el mensaje adjunto en la colección "chat"
+                    const chatRef = collection(window.firebaseDb, "chat");
+                    const qPorId = query(chatRef, where("archivoId", "==", fileId));
+                    const snapPorId = await getDocs(qPorId);
+
+                    if (!snapPorId.empty) {
+                        for (const msgDoc of snapPorId.docs) {
+                            await delDoc(doc(window.firebaseDb, "chat", msgDoc.id));
+                        }
+                    } else {
+                        // Respaldo para archivos subidos antes de vincular archivoId
+                        const qPorNombre = query(chatRef, where("archivoNombre", "==", fileData.nombre));
+                        const snapPorNombre = await getDocs(qPorNombre);
+                        for (const msgDoc of snapPorNombre.docs) {
+                            const msgData = msgDoc.data();
+                            if (msgData.email === fileData.email) {
+                                await delDoc(doc(window.firebaseDb, "chat", msgDoc.id));
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error al eliminar archivo y mensaje:", err);
+                    alert("No se pudo eliminar por completo: " + err.message);
+                    btnEl.disabled = false;
+                    btnEl.textContent = '🗑️ Eliminar';
+                }
+            }
 
             const qFiles = query(collection(window.firebaseDb, "archivos"), orderBy("fecha", "desc"));
             unsubscribeFiles = onSnapshot(qFiles, (snapshot) => {
@@ -900,15 +941,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${notaHTML}
                     `;
 
+                    const esArchivoPropio = Boolean(
+                        data.email &&
+                        user.email &&
+                        data.email.trim().toLowerCase() === user.email.trim().toLowerCase()
+                    );
+
                     if (currentUserRole === 'docente') {
                         const gradeRow = document.createElement('div');
                         gradeRow.className = 'grade-row';
                         gradeRow.innerHTML = `
-                            <input type="number" min="0" max="10" step="0.5" placeholder="Nota (0-10)" value="${data.calificacion ?? ''}" style="width: 90px; padding: 4px 6px; font-size: 11px;">
-                            <button class="mini-button">Calificar</button>
+                            <input type="number" min="0" max="10" step="0.5" placeholder="Nota (0-10)" value="${data.calificacion ?? ''}" style="width: 82px; padding: 4px 6px; font-size: 11px;">
+                            <button class="mini-button btn-grade">Calificar</button>
+                            <button class="mini-button btn-delete" style="color: var(--warning);">🗑️ Eliminar</button>
                         `;
                         const gradeInput = gradeRow.querySelector('input');
-                        const gradeBtn = gradeRow.querySelector('button');
+                        const gradeBtn = gradeRow.querySelector('.btn-grade');
+                        const deleteBtn = gradeRow.querySelector('.btn-delete');
+
                         gradeBtn.onclick = async () => {
                             const val = parseFloat(gradeInput.value);
                             if (isNaN(val) || val < 0 || val > 10) {
@@ -929,7 +979,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                 gradeBtn.textContent = "Calificar";
                             }
                         };
+
+                        deleteBtn.onclick = () => eliminarArchivo(fileId, data, deleteBtn);
                         li.appendChild(gradeRow);
+                    } else if (esArchivoPropio) {
+                        const actionRow = document.createElement('div');
+                        actionRow.className = 'grade-row';
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'mini-button';
+                        deleteBtn.style.color = 'var(--warning)';
+                        deleteBtn.textContent = '🗑️ Eliminar';
+                        deleteBtn.onclick = () => eliminarArchivo(fileId, data, deleteBtn);
+                        actionRow.appendChild(deleteBtn);
+                        li.appendChild(actionRow);
                     }
 
                     fileList.appendChild(li);
@@ -960,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         finalName = `Entrega de ${user.displayName} (Enlace externo)`;
                     }
 
-                    await addDoc(collection(window.firebaseDb, "archivos"), {
+                    const archivoDocRef = await addDoc(collection(window.firebaseDb, "archivos"), {
                         nombre: finalName,
                         url: finalUrl,
                         subidoPor: user.displayName,
@@ -978,6 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         usuario: user.displayName,
                         email: user.email,
                         mensaje: textoChat,
+                        archivoId: archivoDocRef.id,
                         archivoNombre: finalName,
                         archivoUrl: finalUrl,
                         esSistema: currentUserRole === 'docente',
@@ -1031,7 +1094,19 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', () => {
             window.signOut(window.firebaseAuth);
         });
-    }, 800);
+    }
+
+    if (window.firebaseAuth && window.firestoreAPI) {
+        iniciarFirebaseCuandoEsteListo();
+    } else {
+        window.addEventListener('firebase-ready', iniciarFirebaseCuandoEsteListo);
+        const pollFirebase = setInterval(() => {
+            if (window.firebaseAuth && window.firestoreAPI) {
+                iniciarFirebaseCuandoEsteListo();
+                clearInterval(pollFirebase);
+            }
+        }, 300);
+    }
 
     // INICIALIZACIÓN
     resizeCanvas();
