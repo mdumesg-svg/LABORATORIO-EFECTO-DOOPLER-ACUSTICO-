@@ -17,6 +17,9 @@
 
 <body data-theme="midnight">
 
+<!-- CONTENEDOR DE NOTIFICACIONES FLOTANTES -->
+<div id="toastContainer" class="toast-container"></div>
+
 <header class="topbar">
     <div class="brand">
         <div class="brand-mark">∿</div>
@@ -328,27 +331,51 @@
                 </div>
             </div>
 
-            <!-- MATERIAL DE CLASE (Visible al iniciar sesión) -->
+            <!-- MATERIAL DE CLASE (Descarga para todos; subida exclusiva para docentes) -->
             <div class="edu-section" id="materialPanel" style="display: none;">
                 <h3>📖 Material de Clase</h3>
                 <div class="resource-links">
-                    <a href="rubrica.pdf" target="_blank" class="btn btn-outline resource-btn">
-                        📄 Rúbrica de Laboratorio
+                    <a id="btnDownloadRubrica" href="#" class="btn btn-outline resource-btn disabled-link">
+                        📄 Rúbrica de Laboratorio <small>(Pendiente)</small>
                     </a>
-                    <a href="cuadernillo.pdf" target="_blank" class="btn btn-outline resource-btn">
-                        📓 Cuadernillo de Actividades
+                    <a id="btnDownloadCuadernillo" href="#" class="btn btn-outline resource-btn disabled-link">
+                        📓 Cuadernillo de Actividades <small>(Pendiente)</small>
                     </a>
+                </div>
+
+                <!-- CONTROLES EXCLUSIVOS PARA EL DOCENTE -->
+                <div id="teacherMaterialUpload" class="teacher-upload-box" style="display: none;">
+                    <h4>⬆️ Subir / Actualizar Material (Docente)</h4>
+                    <label class="file-label">
+                        <span>Rúbrica (PDF/Word):</span>
+                        <input type="file" id="rubricaInput" accept=".pdf,.doc,.docx">
+                    </label>
+                    <label class="file-label">
+                        <span>Cuadernillo (PDF/Word):</span>
+                        <input type="file" id="cuadernilloInput" accept=".pdf,.doc,.docx">
+                    </label>
+                    <div id="materialProgressWrap" class="progress-wrap" style="display: none;">
+                        <div id="materialProgressBar" class="progress-bar"></div>
+                        <span id="materialProgressText">0%</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="uploadMaterialBtn" style="width: 100%; margin-top: 6px;">
+                        Publicar Material Seleccionado
+                    </button>
                 </div>
             </div>
 
-            <!-- GESTOR DE TAREAS Y CALIFICACIONES (Visible al iniciar sesión) -->
+            <!-- GESTOR DE TAREAS Y CALIFICACIONES -->
             <div class="edu-section highlight-section" id="taskPanel" style="display: none;">
                 <h3>📂 Tareas y Calificaciones</h3>
                 <p class="concept-text" id="taskInstructions">Sube tu informe o descarga las guías asignadas.</p>
                 
                 <div class="upload-box">
                     <input type="file" id="fileInput">
-                    <button class="btn btn-primary btn-sm" id="uploadFileBtn">Subir Archivo</button>
+                    <div id="taskProgressWrap" class="progress-wrap" style="display: none;">
+                        <div id="taskProgressBar" class="progress-bar"></div>
+                        <span id="taskProgressText">0%</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="uploadFileBtn">Subir Tarea / Archivo</button>
                 </div>
                 
                 <div class="files-container">
@@ -359,9 +386,12 @@
                 </div>
             </div>
 
-            <!-- CHAT EN TIEMPO REAL (Visible al iniciar sesión) -->
+            <!-- CHAT EN TIEMPO REAL CON NOTIFICACIONES -->
             <div class="edu-section highlight-section" id="chatPanel" style="display: none;">
-                <h3>💬 Chat de la Clase</h3>
+                <div class="chat-header-row">
+                    <h3>💬 Chat de la Clase</h3>
+                    <span id="chatUnreadBadge" class="unread-badge" style="display: none;">0 nuevos</span>
+                </div>
                 <div id="chatBox">
                     <div class="empty-msg">Bienvenido al chat. Escribe tu consulta.</div>
                 </div>
@@ -400,7 +430,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+  import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBUpDSKH5mSWcB46JSFkEBWcZ57Un8iLk",
@@ -425,7 +455,7 @@
   window.signOut = signOut;
   window.onAuthStateChanged = onAuthStateChanged;
   window.firestoreAPI = { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy };
-  window.storageAPI = { ref, uploadBytesResumable, getDownloadURL, listAll };
+  window.storageAPI = { ref, uploadBytesResumable, getDownloadURL };
 </script>
 
 </body>
