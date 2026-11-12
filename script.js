@@ -1,6 +1,6 @@
 /**
  * SIMULADOR DE EFECTO DOPPLER ACÚSTICO Y AULA VIRTUAL (LMS)
- * UNEMI - Laboratorio Virtual de Física
+ * UNEMI - Laboratorio Virtual de Física (100% Plan Gratuito Spark)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -94,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const osc = notifCtx.createOscillator();
             const gain = notifCtx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(587.33, notifCtx.currentTime); // Re5
-            osc.frequency.setValueAtTime(880, notifCtx.currentTime + 0.11); // La5
+            osc.frequency.setValueAtTime(587.33, notifCtx.currentTime);
+            osc.frequency.setValueAtTime(880, notifCtx.currentTime + 0.11);
 
             gain.gain.setValueAtTime(0.08, notifCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, notifCtx.currentTime + 0.35);
@@ -104,9 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gain.connect(notifCtx.destination);
             osc.start();
             osc.stop(notifCtx.currentTime + 0.36);
-        } catch (e) {
-            // Ignorar si el navegador bloquea audio sin interacción previa
-        }
+        } catch (e) {}
     }
 
     function toggleAudio(btn) {
@@ -504,14 +502,46 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
 
     // ==========================================
-    // 7. FIREBASE: ROLES, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES
+    // 7. FIREBASE: ROLES, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES (SIN STORAGE)
     // ==========================================
+    const MAX_FIRESTORE_FILE_BYTES = 700 * 1024; // 700 KB para plan gratuito Spark
+
     function escapeHTML(str) {
         return String(str)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;");
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            if (file.size > MAX_FIRESTORE_FILE_BYTES) {
+                reject(new Error(`El archivo "${file.name}" pesa ${(file.size / 1024).toFixed(0)} KB y supera el límite gratuito de 700 KB. Comprímelo o pega un enlace de Google Drive.`));
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function getSafeFileUrl(url) {
+        if (!url || !url.startsWith('data:')) return url;
+        try {
+            const parts = url.split(',');
+            const mime = parts[0].match(/:(.*?);/)[1];
+            const binary = atob(parts[1]);
+            const array = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                array[i] = binary.charCodeAt(i);
+            }
+            const blob = new Blob([array], { type: mime });
+            return URL.createObjectURL(blob);
+        } catch (e) {
+            return url;
+        }
     }
 
     function showToastNotification(title, message) {
@@ -529,36 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 6000);
     }
 
-    function uploadFileWithProgress(storageRef, file, progressWrap, progressBar, progressText) {
-        return new Promise((resolve, reject) => {
-            const { uploadBytesResumable, getDownloadURL } = window.storageAPI;
-            progressWrap.style.display = 'flex';
-            progressBar.style.width = '0%';
-            progressText.textContent = '0%';
-
-            const uploadTask = uploadBytesResumable(storageRef, file);
-            uploadTask.on(
-                'state_changed',
-                (snapshot) => {
-                    const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-                    progressBar.style.width = `${pct}%`;
-                    progressText.textContent = `${pct}%`;
-                },
-                (error) => {
-                    progressWrap.style.display = 'none';
-                    reject(error);
-                },
-                async () => {
-                    const url = await getDownloadURL(uploadTask.snapshot.ref);
-                    setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
-                    resolve(url);
-                }
-            );
-        });
-    }
-
     setTimeout(() => {
-        if (!window.firebaseAuth || !window.firestoreAPI || !window.storageAPI) return;
+        if (!window.firebaseAuth || !window.firestoreAPI) return;
 
         const loginBtn = document.getElementById('loginBtn');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -567,7 +569,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const userName = document.getElementById('userName');
 
         const { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } = window.firestoreAPI;
-        const { ref } = window.storageAPI;
 
         let unsubscribeChat = null;
         let unsubscribeFiles = null;
@@ -624,7 +625,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function iniciarSistemas(user) {
-            // Solicitar permiso de notificación del navegador si está disponible
             if ("Notification" in window && Notification.permission === "default") {
                 Notification.requestPermission();
             }
@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
             unsubscribeRubrica = onSnapshot(doc(window.firebaseDb, "materiales", "rubrica"), (snap) => {
                 if (snap.exists() && snap.data().url) {
                     const data = snap.data();
-                    btnRubrica.href = data.url;
+                    btnRubrica.href = getSafeFileUrl(data.url);
                     btnRubrica.target = "_blank";
                     btnRubrica.classList.remove('disabled-link');
                     btnRubrica.innerHTML = `📄 Rúbrica de Laboratorio <small>Descargar</small>`;
@@ -650,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
             unsubscribeCuadernillo = onSnapshot(doc(window.firebaseDb, "materiales", "cuadernillo"), (snap) => {
                 if (snap.exists() && snap.data().url) {
                     const data = snap.data();
-                    btnCuadernillo.href = data.url;
+                    btnCuadernillo.href = getSafeFileUrl(data.url);
                     btnCuadernillo.target = "_blank";
                     btnCuadernillo.classList.remove('disabled-link');
                     btnCuadernillo.innerHTML = `📓 Cuadernillo de Actividades <small>Descargar</small>`;
@@ -667,60 +667,70 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentUserRole !== 'docente') return;
 
                 const rubricaFile = document.getElementById('rubricaInput').files[0];
+                const rubricaLink = document.getElementById('rubricaUrlInput').value.trim();
                 const cuadernilloFile = document.getElementById('cuadernilloInput').files[0];
+                const cuadernilloLink = document.getElementById('cuadernilloUrlInput').value.trim();
 
-                if (!rubricaFile && !cuadernilloFile) {
-                    alert("Selecciona la rúbrica, el cuadernillo o ambos archivos antes de publicar.");
+                const hasRubrica = Boolean(rubricaFile || rubricaLink);
+                const hasCuadernillo = Boolean(cuadernilloFile || cuadernilloLink);
+
+                if (!hasRubrica && !hasCuadernillo) {
+                    alert("Selecciona el archivo o pega el enlace de la rúbrica, del cuadernillo o de ambos.");
                     return;
                 }
 
-                const progressWrap = document.getElementById('materialProgressWrap');
-                const progressBar = document.getElementById('materialProgressBar');
-                const progressText = document.getElementById('materialProgressText');
-
                 uploadMaterialBtn.disabled = true;
-                uploadMaterialBtn.textContent = "Subiendo material...";
+                uploadMaterialBtn.textContent = "Publicando...";
 
                 try {
-                    let rubricaUrl = null;
-                    let cuadernilloUrl = null;
+                    let rubricaFinalUrl = null;
+                    let rubricaName = "Rúbrica de Laboratorio";
+                    let cuadernilloFinalUrl = null;
+                    let cuadernilloName = "Cuadernillo de Actividades";
 
-                    if (rubricaFile) {
-                        const rRef = ref(window.firebaseStorage, `materiales/rubrica_${Date.now()}_${rubricaFile.name}`);
-                        rubricaUrl = await uploadFileWithProgress(rRef, rubricaFile, progressWrap, progressBar, progressText);
+                    if (hasRubrica) {
+                        if (rubricaFile) {
+                            rubricaFinalUrl = await fileToBase64(rubricaFile);
+                            rubricaName = rubricaFile.name;
+                        } else {
+                            rubricaFinalUrl = rubricaLink;
+                        }
                         await setDoc(doc(window.firebaseDb, "materiales", "rubrica"), {
-                            nombre: rubricaFile.name,
-                            url: rubricaUrl,
+                            nombre: rubricaName,
+                            url: rubricaFinalUrl,
                             subidoPor: user.displayName,
                             fecha: new Date()
                         });
                     }
 
-                    if (cuadernilloFile) {
-                        const cRef = ref(window.firebaseStorage, `materiales/cuadernillo_${Date.now()}_${cuadernilloFile.name}`);
-                        cuadernilloUrl = await uploadFileWithProgress(cRef, cuadernilloFile, progressWrap, progressBar, progressText);
+                    if (hasCuadernillo) {
+                        if (cuadernilloFile) {
+                            cuadernilloFinalUrl = await fileToBase64(cuadernilloFile);
+                            cuadernilloName = cuadernilloFile.name;
+                        } else {
+                            cuadernilloFinalUrl = cuadernilloLink;
+                        }
                         await setDoc(doc(window.firebaseDb, "materiales", "cuadernillo"), {
-                            nombre: cuadernilloFile.name,
-                            url: cuadernilloUrl,
+                            nombre: cuadernilloName,
+                            url: cuadernilloFinalUrl,
                             subidoPor: user.displayName,
                             fecha: new Date()
                         });
                     }
 
-                    // Publicar anuncio exacto en el chat según lo que subió el docente
                     let textoAnuncio = "";
                     const adjuntos = [];
 
-                    if (rubricaFile && cuadernilloFile) {
+                    if (hasRubrica && hasCuadernillo) {
                         textoAnuncio = `📢 El docente ${user.displayName} subió la rúbrica y el cuadernillo.`;
-                        adjuntos.push({ nombre: `Rúbrica: ${rubricaFile.name}`, url: rubricaUrl });
-                        adjuntos.push({ nombre: `Cuadernillo: ${cuadernilloFile.name}`, url: cuadernilloUrl });
-                    } else if (rubricaFile) {
+                        adjuntos.push({ nombre: `Rúbrica: ${rubricaName}`, url: rubricaFinalUrl });
+                        adjuntos.push({ nombre: `Cuadernillo: ${cuadernilloName}`, url: cuadernilloFinalUrl });
+                    } else if (hasRubrica) {
                         textoAnuncio = `📢 El docente ${user.displayName} subió la rúbrica.`;
-                        adjuntos.push({ nombre: `Rúbrica: ${rubricaFile.name}`, url: rubricaUrl });
+                        adjuntos.push({ nombre: `Rúbrica: ${rubricaName}`, url: rubricaFinalUrl });
                     } else {
                         textoAnuncio = `📢 El docente ${user.displayName} subió el cuadernillo.`;
-                        adjuntos.push({ nombre: `Cuadernillo: ${cuadernilloFile.name}`, url: cuadernilloUrl });
+                        adjuntos.push({ nombre: `Cuadernillo: ${cuadernilloName}`, url: cuadernilloFinalUrl });
                     }
 
                     await addDoc(collection(window.firebaseDb, "chat"), {
@@ -733,10 +743,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     document.getElementById('rubricaInput').value = '';
+                    document.getElementById('rubricaUrlInput').value = '';
                     document.getElementById('cuadernilloInput').value = '';
+                    document.getElementById('cuadernilloUrlInput').value = '';
                 } catch (err) {
-                    console.error("Error subiendo material:", err);
-                    alert("Error al subir el material: " + err.message);
+                    console.error("Error publicando material:", err);
+                    alert(err.message);
                 } finally {
                     uploadMaterialBtn.disabled = false;
                     uploadMaterialBtn.textContent = "Publicar Material Seleccionado";
@@ -761,7 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const qChat = query(collection(window.firebaseDb, "chat"), orderBy("fecha", "asc"));
 
             unsubscribeChat = onSnapshot(qChat, (snapshot) => {
-                // Detectar mensajes nuevos después de la carga inicial para notificar
                 if (!isInitialChatLoad) {
                     snapshot.docChanges().forEach((change) => {
                         if (change.type === 'added') {
@@ -811,10 +822,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     let adjuntosHTML = '';
                     if (Array.isArray(data.adjuntos)) {
                         data.adjuntos.forEach(adj => {
-                            adjuntosHTML += `<div><a href="${escapeHTML(adj.url)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(adj.nombre)}</a></div>`;
+                            const safeHref = getSafeFileUrl(adj.url);
+                            adjuntosHTML += `<div><a href="${escapeHTML(safeHref)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(adj.nombre)}</a></div>`;
                         });
                     } else if (data.archivoUrl) {
-                        adjuntosHTML = `<div><a href="${escapeHTML(data.archivoUrl)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(data.archivoNombre || 'Descargar archivo')}</a></div>`;
+                        const safeHref = getSafeFileUrl(data.archivoUrl);
+                        adjuntosHTML = `<div><a href="${escapeHTML(safeHref)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(data.archivoNombre || 'Descargar archivo')}</a></div>`;
                     }
 
                     div.innerHTML = `
@@ -844,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 } catch (err) {
                     console.error("Error enviando mensaje:", err);
-                    alert("No se pudo enviar el mensaje. Revisa las reglas de Firestore.");
+                    alert("No se pudo enviar el mensaje.");
                 }
             }
 
@@ -855,6 +868,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // C. GESTIÓN DE TAREAS, CALIFICACIONES Y ENVÍO AL CHAT
             const fileInput = document.getElementById('fileInput');
+            const fileUrlInput = document.getElementById('fileUrlInput');
             const uploadFileBtn = document.getElementById('uploadFileBtn');
             const fileList = document.getElementById('fileList');
 
@@ -868,6 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const fileId = docSnap.id;
+                    const safeHref = getSafeFileUrl(data.url);
                     const li = document.createElement('li');
                     li.className = 'file-item';
 
@@ -876,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         : `<div class="grade-badge" style="opacity:0.65;">Pendiente de revisión</div>`;
 
                     li.innerHTML = `
-                        <a href="${escapeHTML(data.url)}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+                        <a href="${escapeHTML(safeHref)}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">
                             📄 ${escapeHTML(data.nombre)}
                         </a>
                         <div style="color: var(--muted); font-size: 10px;">
@@ -923,26 +938,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
             uploadFileBtn.onclick = async () => {
                 const file = fileInput.files[0];
-                if (!file) {
-                    alert("Selecciona un archivo primero.");
+                const externalLink = fileUrlInput.value.trim();
+
+                if (!file && !externalLink) {
+                    alert("Selecciona un archivo de tu equipo o pega un enlace de Google Drive.");
                     return;
                 }
 
-                const progressWrap = document.getElementById('taskProgressWrap');
-                const progressBar = document.getElementById('taskProgressBar');
-                const progressText = document.getElementById('taskProgressText');
-
-                uploadFileBtn.textContent = "Subiendo...";
+                uploadFileBtn.textContent = "Guardando...";
                 uploadFileBtn.disabled = true;
 
                 try {
-                    const storageRef = ref(window.firebaseStorage, `archivos/${Date.now()}_${file.name}`);
-                    const url = await uploadFileWithProgress(storageRef, file, progressWrap, progressBar, progressText);
+                    let finalUrl = "";
+                    let finalName = "";
 
-                    // 1. Guardar en la lista de tareas/calificaciones
+                    if (file) {
+                        finalUrl = await fileToBase64(file);
+                        finalName = file.name;
+                    } else {
+                        finalUrl = externalLink;
+                        finalName = `Entrega de ${user.displayName} (Enlace externo)`;
+                    }
+
                     await addDoc(collection(window.firebaseDb, "archivos"), {
-                        nombre: file.name,
-                        url: url,
+                        nombre: finalName,
+                        url: finalUrl,
                         subidoPor: user.displayName,
                         email: user.email,
                         rolAutor: currentUserRole,
@@ -950,7 +970,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         fecha: new Date()
                     });
 
-                    // 2. Publicar el archivo también dentro del chat
                     const textoChat = currentUserRole === 'docente'
                         ? `📌 El docente ${user.displayName} subió una nueva tarea:`
                         : `📎 ${user.displayName} subió un archivo de tarea:`;
@@ -959,16 +978,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         usuario: user.displayName,
                         email: user.email,
                         mensaje: textoChat,
-                        archivoNombre: file.name,
-                        archivoUrl: url,
+                        archivoNombre: finalName,
+                        archivoUrl: finalUrl,
                         esSistema: currentUserRole === 'docente',
                         fecha: new Date()
                     });
 
                     fileInput.value = '';
+                    fileUrlInput.value = '';
                 } catch (err) {
                     console.error("Error subiendo tarea:", err);
-                    alert("Error al subir el archivo. Verifica que Firebase Storage esté activo y publicado.");
+                    alert(err.message);
                 } finally {
                     uploadFileBtn.textContent = "Subir Tarea / Archivo";
                     uploadFileBtn.disabled = false;
