@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('waveCanvas');
     const ctx = canvas.getContext('2d');
 
-    // 2. WEB AUDIO API (SINTETIZADOR EN TIEMPO REAL)
+    // 2. WEB AUDIO API (SONIDO DOPPLER Y TIMBRE DE NOTIFICACIÓN)
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -82,6 +82,30 @@ document.addEventListener('DOMContentLoaded', () => {
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             oscillator.start();
+        }
+    }
+
+    function playNotificationSound() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const notifCtx = audioCtx || new AudioContext();
+            if (notifCtx.state === 'suspended') notifCtx.resume();
+
+            const osc = notifCtx.createOscillator();
+            const gain = notifCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, notifCtx.currentTime); // Re5
+            osc.frequency.setValueAtTime(880, notifCtx.currentTime + 0.11); // La5
+
+            gain.gain.setValueAtTime(0.08, notifCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, notifCtx.currentTime + 0.35);
+
+            osc.connect(gain);
+            gain.connect(notifCtx.destination);
+            osc.start();
+            osc.stop(notifCtx.currentTime + 0.36);
+        } catch (e) {
+            // Ignorar si el navegador bloquea audio sin interacción previa
         }
     }
 
@@ -144,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             oscillator.frequency.setTargetAtTime(Math.min(state.fObs, 4000), audioCtx.currentTime, 0.08);
         }
 
-        // Actualizar etiquetas de salida
         outputs.f.textContent = `${state.f} Hz`;
         outputs.vS.textContent = `${state.vS} m/s`;
         outputs.vR.textContent = `${state.vR} m/s`;
@@ -336,7 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.waves.push({ x: state.srcX, y: cY, radius: 0, alpha: 1 });
             }
 
-            // Trayectoria
             if (toggles.path.checked) {
                 ctx.beginPath();
                 ctx.moveTo(0, cY);
@@ -347,7 +369,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.setLineDash([]);
             }
 
-            // Frentes de onda
             if (toggles.waves.checked) {
                 for (let i = state.waves.length - 1; i >= 0; i--) {
                     const w = state.waves[i];
@@ -365,7 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Receptor
             if (toggles.receiver.checked) {
                 ctx.beginPath();
                 ctx.arc(state.recX, cY, 9, 0, Math.PI * 2);
@@ -383,7 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Fuente
             ctx.beginPath();
             ctx.arc(state.srcX, cY, 9, 0, Math.PI * 2);
             ctx.fillStyle = '#ffb66b';
@@ -485,8 +504,59 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', resizeCanvas);
 
     // ==========================================
-    // 7. FIREBASE: ROLES, CHAT, ARCHIVOS Y NOTAS
+    // 7. FIREBASE: ROLES, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES
     // ==========================================
+    function escapeHTML(str) {
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function showToastNotification(title, message) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = `<strong>🔔 ${escapeHTML(title)}</strong><span>${escapeHTML(message)}</span>`;
+        toast.onclick = () => {
+            document.getElementById('chatPanel').scrollIntoView({ behavior: 'smooth' });
+            toast.remove();
+        };
+        container.appendChild(toast);
+        setTimeout(() => {
+            if (toast.parentElement) toast.remove();
+        }, 6000);
+    }
+
+    function uploadFileWithProgress(storageRef, file, progressWrap, progressBar, progressText) {
+        return new Promise((resolve, reject) => {
+            const { uploadBytesResumable, getDownloadURL } = window.storageAPI;
+            progressWrap.style.display = 'flex';
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                    progressBar.style.width = `${pct}%`;
+                    progressText.textContent = `${pct}%`;
+                },
+                (error) => {
+                    progressWrap.style.display = 'none';
+                    reject(error);
+                },
+                async () => {
+                    const url = await getDownloadURL(uploadTask.snapshot.ref);
+                    setTimeout(() => { progressWrap.style.display = 'none'; }, 600);
+                    resolve(url);
+                }
+            );
+        });
+    }
+
     setTimeout(() => {
         if (!window.firebaseAuth || !window.firestoreAPI || !window.storageAPI) return;
 
@@ -497,11 +567,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const userName = document.getElementById('userName');
 
         const { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } = window.firestoreAPI;
-        const { ref, uploadBytesResumable, getDownloadURL } = window.storageAPI;
+        const { ref } = window.storageAPI;
 
         let unsubscribeChat = null;
         let unsubscribeFiles = null;
+        let unsubscribeRubrica = null;
+        let unsubscribeCuadernillo = null;
         let currentUserRole = 'estudiante';
+        let unreadCount = 0;
 
         async function checkUserRole(user) {
             const userRef = doc(window.firebaseDb, "usuarios", user.email);
@@ -529,15 +602,18 @@ document.addEventListener('DOMContentLoaded', () => {
             rolBadge.style.marginBottom = '12px';
 
             const taskInst = document.getElementById('taskInstructions');
+            const teacherUploadBox = document.getElementById('teacherMaterialUpload');
 
             if (rol === 'docente') {
                 rolBadge.textContent = '👨‍🏫 VISTA DE DOCENTE';
                 rolBadge.style.backgroundColor = 'color-mix(in srgb, var(--warning) 18%, transparent)';
                 rolBadge.style.color = 'var(--warning)';
-                taskInst.textContent = "Sube deberes o guías y califica las entregas de los estudiantes.";
+                taskInst.textContent = "Sube deberes o guías (aparecerán en el chat) y califica las entregas.";
+                teacherUploadBox.style.display = 'flex';
             } else {
                 rolBadge.textContent = '🎓 VISTA DE ESTUDIANTE';
-                taskInst.textContent = "Descarga las guías y sube tu informe resuelto para calificación.";
+                taskInst.textContent = "Sube tu tarea resuelta; se enviará al chat y quedará lista para calificación.";
+                teacherUploadBox.style.display = 'none';
             }
 
             eduPanel.insertBefore(rolBadge, eduPanel.children[1]);
@@ -548,40 +624,217 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function iniciarSistemas(user) {
-            // A. CHAT EN TIEMPO REAL
+            // Solicitar permiso de notificación del navegador si está disponible
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+
+            // A. SINCRONIZACIÓN DE RÚBRICA Y CUADERNILLO (DESCARGA PARA TODOS)
+            const btnRubrica = document.getElementById('btnDownloadRubrica');
+            const btnCuadernillo = document.getElementById('btnDownloadCuadernillo');
+
+            unsubscribeRubrica = onSnapshot(doc(window.firebaseDb, "materiales", "rubrica"), (snap) => {
+                if (snap.exists() && snap.data().url) {
+                    const data = snap.data();
+                    btnRubrica.href = data.url;
+                    btnRubrica.target = "_blank";
+                    btnRubrica.classList.remove('disabled-link');
+                    btnRubrica.innerHTML = `📄 Rúbrica de Laboratorio <small>Descargar</small>`;
+                } else {
+                    btnRubrica.href = "#";
+                    btnRubrica.classList.add('disabled-link');
+                    btnRubrica.innerHTML = `📄 Rúbrica de Laboratorio <small>(Pendiente)</small>`;
+                }
+            });
+
+            unsubscribeCuadernillo = onSnapshot(doc(window.firebaseDb, "materiales", "cuadernillo"), (snap) => {
+                if (snap.exists() && snap.data().url) {
+                    const data = snap.data();
+                    btnCuadernillo.href = data.url;
+                    btnCuadernillo.target = "_blank";
+                    btnCuadernillo.classList.remove('disabled-link');
+                    btnCuadernillo.innerHTML = `📓 Cuadernillo de Actividades <small>Descargar</small>`;
+                } else {
+                    btnCuadernillo.href = "#";
+                    btnCuadernillo.classList.add('disabled-link');
+                    btnCuadernillo.innerHTML = `📓 Cuadernillo de Actividades <small>(Pendiente)</small>`;
+                }
+            });
+
+            // SUBIDA DE RÚBRICA / CUADERNILLO (EXCLUSIVO DOCENTE)
+            const uploadMaterialBtn = document.getElementById('uploadMaterialBtn');
+            uploadMaterialBtn.onclick = async () => {
+                if (currentUserRole !== 'docente') return;
+
+                const rubricaFile = document.getElementById('rubricaInput').files[0];
+                const cuadernilloFile = document.getElementById('cuadernilloInput').files[0];
+
+                if (!rubricaFile && !cuadernilloFile) {
+                    alert("Selecciona la rúbrica, el cuadernillo o ambos archivos antes de publicar.");
+                    return;
+                }
+
+                const progressWrap = document.getElementById('materialProgressWrap');
+                const progressBar = document.getElementById('materialProgressBar');
+                const progressText = document.getElementById('materialProgressText');
+
+                uploadMaterialBtn.disabled = true;
+                uploadMaterialBtn.textContent = "Subiendo material...";
+
+                try {
+                    let rubricaUrl = null;
+                    let cuadernilloUrl = null;
+
+                    if (rubricaFile) {
+                        const rRef = ref(window.firebaseStorage, `materiales/rubrica_${Date.now()}_${rubricaFile.name}`);
+                        rubricaUrl = await uploadFileWithProgress(rRef, rubricaFile, progressWrap, progressBar, progressText);
+                        await setDoc(doc(window.firebaseDb, "materiales", "rubrica"), {
+                            nombre: rubricaFile.name,
+                            url: rubricaUrl,
+                            subidoPor: user.displayName,
+                            fecha: new Date()
+                        });
+                    }
+
+                    if (cuadernilloFile) {
+                        const cRef = ref(window.firebaseStorage, `materiales/cuadernillo_${Date.now()}_${cuadernilloFile.name}`);
+                        cuadernilloUrl = await uploadFileWithProgress(cRef, cuadernilloFile, progressWrap, progressBar, progressText);
+                        await setDoc(doc(window.firebaseDb, "materiales", "cuadernillo"), {
+                            nombre: cuadernilloFile.name,
+                            url: cuadernilloUrl,
+                            subidoPor: user.displayName,
+                            fecha: new Date()
+                        });
+                    }
+
+                    // Publicar anuncio exacto en el chat según lo que subió el docente
+                    let textoAnuncio = "";
+                    const adjuntos = [];
+
+                    if (rubricaFile && cuadernilloFile) {
+                        textoAnuncio = `📢 El docente ${user.displayName} subió la rúbrica y el cuadernillo.`;
+                        adjuntos.push({ nombre: `Rúbrica: ${rubricaFile.name}`, url: rubricaUrl });
+                        adjuntos.push({ nombre: `Cuadernillo: ${cuadernilloFile.name}`, url: cuadernilloUrl });
+                    } else if (rubricaFile) {
+                        textoAnuncio = `📢 El docente ${user.displayName} subió la rúbrica.`;
+                        adjuntos.push({ nombre: `Rúbrica: ${rubricaFile.name}`, url: rubricaUrl });
+                    } else {
+                        textoAnuncio = `📢 El docente ${user.displayName} subió el cuadernillo.`;
+                        adjuntos.push({ nombre: `Cuadernillo: ${cuadernilloFile.name}`, url: cuadernilloUrl });
+                    }
+
+                    await addDoc(collection(window.firebaseDb, "chat"), {
+                        usuario: user.displayName,
+                        email: user.email,
+                        mensaje: textoAnuncio,
+                        adjuntos: adjuntos,
+                        esSistema: true,
+                        fecha: new Date()
+                    });
+
+                    document.getElementById('rubricaInput').value = '';
+                    document.getElementById('cuadernilloInput').value = '';
+                } catch (err) {
+                    console.error("Error subiendo material:", err);
+                    alert("Error al subir el material: " + err.message);
+                } finally {
+                    uploadMaterialBtn.disabled = false;
+                    uploadMaterialBtn.textContent = "Publicar Material Seleccionado";
+                }
+            };
+
+            // B. CHAT EN TIEMPO REAL + NOTIFICACIONES
             const chatBox = document.getElementById('chatBox');
             const chatInput = document.getElementById('chatInput');
             const sendMsgBtn = document.getElementById('sendMsgBtn');
+            const unreadBadge = document.getElementById('chatUnreadBadge');
 
+            function resetUnreadBadge() {
+                unreadCount = 0;
+                unreadBadge.style.display = 'none';
+            }
+
+            chatBox.addEventListener('click', resetUnreadBadge);
+            chatInput.addEventListener('focus', resetUnreadBadge);
+
+            let isInitialChatLoad = true;
             const qChat = query(collection(window.firebaseDb, "chat"), orderBy("fecha", "asc"));
+
             unsubscribeChat = onSnapshot(qChat, (snapshot) => {
+                // Detectar mensajes nuevos después de la carga inicial para notificar
+                if (!isInitialChatLoad) {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const newMsg = change.doc.data();
+                            if (newMsg.email !== user.email) {
+                                unreadCount++;
+                                unreadBadge.textContent = `${unreadCount} nuevo${unreadCount > 1 ? 's' : ''}`;
+                                unreadBadge.style.display = 'inline-block';
+
+                                playNotificationSound();
+                                showToastNotification(newMsg.usuario, newMsg.mensaje);
+
+                                if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+                                    new Notification(`Mensaje de ${newMsg.usuario}`, { body: newMsg.mensaje });
+                                }
+                            }
+                        }
+                    });
+                }
+                isInitialChatLoad = false;
+
                 chatBox.innerHTML = '';
                 if (snapshot.empty) {
                     chatBox.innerHTML = '<div class="empty-msg">No hay mensajes aún. Inicia la conversación.</div>';
                     return;
                 }
+
                 snapshot.forEach((docSnap) => {
                     const data = docSnap.data();
                     const isMine = data.email === user.email;
                     const div = document.createElement('div');
                     div.style.fontSize = '11px';
-                    div.style.background = isMine ? 'color-mix(in srgb, var(--primary) 16%, transparent)' : 'var(--surface-2)';
-                    div.style.padding = '7px 10px';
+                    div.style.padding = '8px 10px';
                     div.style.borderRadius = '8px';
-                    div.style.borderLeft = isMine ? '3px solid var(--primary)' : '3px solid var(--accent-2)';
-                    div.innerHTML = `<strong>${data.usuario}</strong><br><span style="color:var(--muted);">${data.mensaje}</span>`;
+
+                    if (data.esSistema) {
+                        div.style.background = 'color-mix(in srgb, var(--warning) 16%, var(--surface-2))';
+                        div.style.borderLeft = '3px solid var(--warning)';
+                    } else if (isMine) {
+                        div.style.background = 'color-mix(in srgb, var(--primary) 16%, transparent)';
+                        div.style.borderLeft = '3px solid var(--primary)';
+                    } else {
+                        div.style.background = 'var(--surface-2)';
+                        div.style.borderLeft = '3px solid var(--accent-2)';
+                    }
+
+                    let adjuntosHTML = '';
+                    if (Array.isArray(data.adjuntos)) {
+                        data.adjuntos.forEach(adj => {
+                            adjuntosHTML += `<div><a href="${escapeHTML(adj.url)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(adj.nombre)}</a></div>`;
+                        });
+                    } else if (data.archivoUrl) {
+                        adjuntosHTML = `<div><a href="${escapeHTML(data.archivoUrl)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(data.archivoNombre || 'Descargar archivo')}</a></div>`;
+                    }
+
+                    div.innerHTML = `
+                        <strong>${escapeHTML(data.usuario)}</strong><br>
+                        <span style="color:var(--text);">${escapeHTML(data.mensaje)}</span>
+                        ${adjuntosHTML}
+                    `;
                     chatBox.appendChild(div);
                 });
                 chatBox.scrollTop = chatBox.scrollHeight;
             }, (err) => {
                 console.error("Error leyendo chat:", err);
-                chatBox.innerHTML = `<div class="empty-msg" style="color:var(--warning);">Revisa los permisos de Firestore en Firebase.</div>`;
+                chatBox.innerHTML = `<div class="empty-msg" style="color:var(--warning);">Verifica los permisos de Firestore en Firebase.</div>`;
             });
 
             async function enviarMensaje() {
                 const msg = chatInput.value.trim();
                 if (!msg) return;
                 chatInput.value = '';
+                resetUnreadBadge();
                 try {
                     await addDoc(collection(window.firebaseDb, "chat"), {
                         usuario: user.displayName,
@@ -591,7 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 } catch (err) {
                     console.error("Error enviando mensaje:", err);
-                    alert("No se pudo enviar el mensaje. Verifica las reglas de Firestore.");
+                    alert("No se pudo enviar el mensaje. Revisa las reglas de Firestore.");
                 }
             }
 
@@ -600,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key === 'Enter') enviarMensaje();
             };
 
-            // B. GESTIÓN DE ARCHIVOS Y CALIFICACIONES
+            // C. GESTIÓN DE TAREAS, CALIFICACIONES Y ENVÍO AL CHAT
             const fileInput = document.getElementById('fileInput');
             const uploadFileBtn = document.getElementById('uploadFileBtn');
             const fileList = document.getElementById('fileList');
@@ -623,16 +876,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         : `<div class="grade-badge" style="opacity:0.65;">Pendiente de revisión</div>`;
 
                     li.innerHTML = `
-                        <a href="${data.url}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">
-                            📄 ${data.nombre}
+                        <a href="${escapeHTML(data.url)}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+                            📄 ${escapeHTML(data.nombre)}
                         </a>
                         <div style="color: var(--muted); font-size: 10px;">
-                            Subido por: ${data.subidoPor} (${data.rolAutor || 'usuario'})
+                            Subido por: ${escapeHTML(data.subidoPor)} (${escapeHTML(data.rolAutor || 'usuario')})
                         </div>
                         ${notaHTML}
                     `;
 
-                    // Si el usuario actual es DOCENTE, mostrar controles para calificar
                     if (currentUserRole === 'docente') {
                         const gradeRow = document.createElement('div');
                         gradeRow.className = 'grade-row';
@@ -669,49 +921,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            uploadFileBtn.onclick = () => {
+            uploadFileBtn.onclick = async () => {
                 const file = fileInput.files[0];
                 if (!file) {
                     alert("Selecciona un archivo primero.");
                     return;
                 }
 
+                const progressWrap = document.getElementById('taskProgressWrap');
+                const progressBar = document.getElementById('taskProgressBar');
+                const progressText = document.getElementById('taskProgressText');
+
                 uploadFileBtn.textContent = "Subiendo...";
                 uploadFileBtn.disabled = true;
 
-                const storageRef = ref(window.firebaseStorage, `archivos/${Date.now()}_${file.name}`);
-                const uploadTask = uploadBytesResumable(storageRef, file);
+                try {
+                    const storageRef = ref(window.firebaseStorage, `archivos/${Date.now()}_${file.name}`);
+                    const url = await uploadFileWithProgress(storageRef, file, progressWrap, progressBar, progressText);
 
-                uploadTask.on('state_changed',
-                    null,
-                    (error) => {
-                        console.error("Error Storage:", error);
-                        alert("Error al subir el archivo. Verifica que Firebase Storage esté activo en modo de prueba.");
-                        uploadFileBtn.textContent = "Subir Archivo";
-                        uploadFileBtn.disabled = false;
-                    },
-                    async () => {
-                        try {
-                            const url = await getDownloadURL(uploadTask.snapshot.ref);
-                            await addDoc(collection(window.firebaseDb, "archivos"), {
-                                nombre: file.name,
-                                url: url,
-                                subidoPor: user.displayName,
-                                email: user.email,
-                                rolAutor: currentUserRole,
-                                calificacion: null,
-                                fecha: new Date()
-                            });
-                            fileInput.value = '';
-                        } catch (err) {
-                            console.error("Error guardando metadatos:", err);
-                            alert("El archivo subió pero no se registró en Firestore.");
-                        } finally {
-                            uploadFileBtn.textContent = "Subir Archivo";
-                            uploadFileBtn.disabled = false;
-                        }
-                    }
-                );
+                    // 1. Guardar en la lista de tareas/calificaciones
+                    await addDoc(collection(window.firebaseDb, "archivos"), {
+                        nombre: file.name,
+                        url: url,
+                        subidoPor: user.displayName,
+                        email: user.email,
+                        rolAutor: currentUserRole,
+                        calificacion: null,
+                        fecha: new Date()
+                    });
+
+                    // 2. Publicar el archivo también dentro del chat
+                    const textoChat = currentUserRole === 'docente'
+                        ? `📌 El docente ${user.displayName} subió una nueva tarea:`
+                        : `📎 ${user.displayName} subió un archivo de tarea:`;
+
+                    await addDoc(collection(window.firebaseDb, "chat"), {
+                        usuario: user.displayName,
+                        email: user.email,
+                        mensaje: textoChat,
+                        archivoNombre: file.name,
+                        archivoUrl: url,
+                        esSistema: currentUserRole === 'docente',
+                        fecha: new Date()
+                    });
+
+                    fileInput.value = '';
+                } catch (err) {
+                    console.error("Error subiendo tarea:", err);
+                    alert("Error al subir el archivo. Verifica que Firebase Storage esté activo y publicado.");
+                } finally {
+                    uploadFileBtn.textContent = "Subir Tarea / Archivo";
+                    uploadFileBtn.disabled = false;
+                }
             };
         }
 
@@ -735,6 +996,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (unsubscribeChat) unsubscribeChat();
                 if (unsubscribeFiles) unsubscribeFiles();
+                if (unsubscribeRubrica) unsubscribeRubrica();
+                if (unsubscribeCuadernillo) unsubscribeCuadernillo();
             }
         });
 
