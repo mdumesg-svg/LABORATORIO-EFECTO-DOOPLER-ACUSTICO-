@@ -347,18 +347,16 @@
                 <div id="teacherMaterialUpload" class="teacher-upload-box" style="display: none;">
                     <h4>⬆️ Subir / Actualizar Material (Docente)</h4>
                     <label class="file-label">
-                        <span>Rúbrica (PDF/Word):</span>
+                        <span>Rúbrica (PDF/Word máx. 700 KB o enlace Drive):</span>
                         <input type="file" id="rubricaInput" accept=".pdf,.doc,.docx">
+                        <input type="text" id="rubricaUrlInput" placeholder="O pega enlace de Google Drive (opcional)">
                     </label>
                     <label class="file-label">
-                        <span>Cuadernillo (PDF/Word):</span>
+                        <span>Cuadernillo (PDF/Word máx. 700 KB o enlace Drive):</span>
                         <input type="file" id="cuadernilloInput" accept=".pdf,.doc,.docx">
+                        <input type="text" id="cuadernilloUrlInput" placeholder="O pega enlace de Google Drive (opcional)">
                     </label>
-                    <div id="materialProgressWrap" class="progress-wrap" style="display: none;">
-                        <div id="materialProgressBar" class="progress-bar"></div>
-                        <span id="materialProgressText">0%</span>
-                    </div>
-                    <button class="btn btn-primary btn-sm" id="uploadMaterialBtn" style="width: 100%; margin-top: 6px;">
+                    <button class="btn btn-primary btn-sm" id="uploadMaterialBtn" style="width: 100%; margin-top: 4px;">
                         Publicar Material Seleccionado
                     </button>
                 </div>
@@ -371,10 +369,7 @@
                 
                 <div class="upload-box">
                     <input type="file" id="fileInput">
-                    <div id="taskProgressWrap" class="progress-wrap" style="display: none;">
-                        <div id="taskProgressBar" class="progress-bar"></div>
-                        <span id="taskProgressText">0%</span>
-                    </div>
+                    <input type="text" id="fileUrlInput" placeholder="O pega enlace de Drive si pesa más de 700 KB">
                     <button class="btn btn-primary btn-sm" id="uploadFileBtn">Subir Tarea / Archivo</button>
                 </div>
                 
@@ -425,12 +420,11 @@
 
 </main>
 
-<!-- CONEXIÓN A FIREBASE -->
+<!-- CONEXIÓN A FIREBASE (SOLO AUTH + FIRESTORE GRATUITO) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBBUpDSKH5mSWcB46JSFkEBWcZ57Un8iLk",
@@ -444,18 +438,15 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  const storage = getStorage(app);
   const provider = new GoogleAuthProvider();
 
   window.firebaseAuth = auth;
   window.firebaseDb = db;
-  window.firebaseStorage = storage;
   window.googleProvider = provider;
   window.signInWithPopup = signInWithPopup;
   window.signOut = signOut;
   window.onAuthStateChanged = onAuthStateChanged;
   window.firestoreAPI = { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy };
-  window.storageAPI = { ref, uploadBytesResumable, getDownloadURL };
 </script>
 
 </body>
