@@ -5,114 +5,127 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // CATÁLOGO DE 12 ESCENARIOS DE LA VIDA REAL
+    // facesRightByDefault: true solo si el emoji nativo ya mira a la derecha
     const REAL_SCENARIOS = [
         {
             id: 'ambulance',
             name: 'Ambulancia',
             emoji: '🚑',
+            facesRightByDefault: false,
             sub: 'vs = 32 m/s · Sirena',
-            desc: '🚑 <strong>Ambulancia en avenida urbana:</strong> sirena bitonal a 660 Hz desplazándose a 32 m/s (115 km/h) frente a un peatón en reposo.',
+            desc: '🚑 <strong>Ambulancia en avenida urbana:</strong> sirena bitonal a 660 Hz desplazándose por la carretera a 32 m/s (115 km/h) frente a un peatón en la acera.',
             f: 660, vS: 32, vR: 0, T: 20, mediumSpeed: null,
-            env: 'city_road', sourceType: 'ambulance', receiverType: 'pedestrian', toneType: 'siren_hi_lo'
+            env: 'suburb_road', sourceType: 'ambulance', receiverType: 'pedestrian', soundProfile: 'ambulance'
         },
         {
             id: 'police',
             name: 'Patrulla Policial',
             emoji: '🚓',
+            facesRightByDefault: false,
             sub: 'vs = 38 m/s · Persecución',
-            desc: '🚓 <strong>Patrulla policial en persecución:</strong> sirena modulada a 780 Hz avanzando a 38 m/s frente a un vehículo estacionado.',
+            desc: '🚓 <strong>Patrulla policial nocturna:</strong> sirena modulada a 780 Hz avanzando a 38 m/s frente a un vehículo estacionado en la avenida.',
             f: 780, vS: 38, vR: 0, T: 20, mediumSpeed: null,
-            env: 'city_night', sourceType: 'police', receiverType: 'car_parked', toneType: 'siren_sweep'
+            env: 'city_night', sourceType: 'police', receiverType: 'car_parked', soundProfile: 'police'
         },
         {
             id: 'firetruck',
             name: 'Camión de Bomberos',
             emoji: '🚒',
+            facesRightByDefault: false,
             sub: 'vs = 28 m/s · vr = -6 m/s',
-            desc: '🚒 <strong>Camión de bomberos:</strong> bocina grave de 320 Hz avanzando a 28 m/s mientras un ciclista se aproxima en sentido contrario a 6 m/s.',
+            desc: '🚒 <strong>Camión de bomberos:</strong> bocina de emergencia de 320 Hz avanzando a 28 m/s mientras un ciclista se aproxima en sentido contrario a 6 m/s.',
             f: 320, vS: 28, vR: -6, T: 22, mediumSpeed: null,
-            env: 'city_road', sourceType: 'firetruck', receiverType: 'cyclist', toneType: 'horn'
+            env: 'suburb_road', sourceType: 'firetruck', receiverType: 'cyclist', soundProfile: 'firetruck'
         },
         {
             id: 'bullet_train',
             name: 'Tren Bala',
             emoji: '🚄',
+            facesRightByDefault: false,
             sub: 'vs = 85 m/s · 306 km/h',
-            desc: '🚄 <strong>Tren de alta velocidad:</strong> cruza una estación ferroviaria a 85 m/s emitiendo su silbato a 440 Hz frente a un pasajero en el andén.',
+            desc: '🚄 <strong>Tren de alta velocidad:</strong> cruza la estación ferroviaria a 85 m/s emitiendo su silbato a 440 Hz frente a un pasajero en el andén.',
             f: 440, vS: 85, vR: 0, T: 20, mediumSpeed: null,
-            env: 'railway', sourceType: 'train', receiverType: 'pedestrian', toneType: 'horn'
+            env: 'railway', sourceType: 'train', receiverType: 'pedestrian', soundProfile: 'train'
         },
         {
             id: 'f1_car',
             name: 'Auto Fórmula 1',
             emoji: '🏎️',
+            facesRightByDefault: false,
             sub: 'vs = 92 m/s · 331 km/h',
-            desc: '🏎️ <strong>Monoplaza Fórmula 1 en recta:</strong> motor a 540 Hz pasando a 92 m/s frente a las gradas (efecto acústico "neeee-owww").',
+            desc: '🏎️ <strong>Monoplaza Fórmula 1 en recta principal:</strong> motor a 540 Hz pasando a 92 m/s frente a los espectadores en las tarimas (efecto "neeee-owww").',
             f: 540, vS: 92, vR: 0, T: 26, mediumSpeed: null,
-            env: 'racetrack', sourceType: 'f1', receiverType: 'spectator', toneType: 'engine'
+            env: 'racetrack', sourceType: 'f1', receiverType: 'spectator', soundProfile: 'f1'
         },
         {
             id: 'supersonic_jet',
             name: 'Caza Supersónico',
             emoji: '✈️',
+            facesRightByDefault: true,
             sub: 'vs = 400 m/s · Mach 1.16',
-            desc: '✈️ <strong>Aeronave supersónica (Mach > 1):</strong> supera la velocidad del sonido (400 m/s) acumulando los frentes en un Cono de Mach.',
+            desc: '✈️ <strong>Aeronave supersónica (Mach > 1):</strong> supera la velocidad del sonido (400 m/s) sobre las nubes acumulando los frentes en un Cono de Mach.',
             f: 300, vS: 400, vR: 0, T: 20, mediumSpeed: null,
-            env: 'sky', sourceType: 'jet', receiverType: 'observer_ground', toneType: 'engine'
+            env: 'sky_high', sourceType: 'jet', receiverType: 'observer_ground', soundProfile: 'jet'
         },
         {
             id: 'helicopter',
             name: 'Helicóptero',
             emoji: '🚁',
+            facesRightByDefault: false,
             sub: 'vs = 45 m/s · Rotores',
-            desc: '🚁 <strong>Helicóptero de rescate en vuelo rasante:</strong> frecuencia de rotores de 210 Hz desplazándose a 45 m/s sobre un observador.',
+            desc: '🚁 <strong>Helicóptero de rescate en vuelo rasante:</strong> batido de rotores a 210 Hz desplazándose a 45 m/s sobre el valle.',
             f: 210, vS: 45, vR: 0, T: 18, mediumSpeed: null,
-            env: 'sky', sourceType: 'helicopter', receiverType: 'pedestrian', toneType: 'engine'
+            env: 'valley_sky', sourceType: 'helicopter', receiverType: 'pedestrian', soundProfile: 'helicopter'
         },
         {
             id: 'motorcycle',
             name: 'Motocicleta',
             emoji: '🏍️',
+            facesRightByDefault: false,
             sub: 'vs = 42 m/s · Carretera',
-            desc: '🏍️ <strong>Motocicleta deportiva:</strong> escape a 490 Hz acelerando a 42 m/s en carretera abierta frente a un peatón.',
+            desc: '🏍️ <strong>Motocicleta deportiva:</strong> escape a 490 Hz acelerando a 42 m/s en carretera panorámica frente a un observador.',
             f: 490, vS: 42, vR: 0, T: 24, mediumSpeed: null,
-            env: 'highway', sourceType: 'moto', receiverType: 'pedestrian', toneType: 'engine'
+            env: 'highway', sourceType: 'moto', receiverType: 'pedestrian', soundProfile: 'moto'
         },
         {
             id: 'bat',
             name: 'Murciélago (Sonar)',
             emoji: '🦇',
+            facesRightByDefault: false,
             sub: 'vs = 12 m/s · Bio-sonar',
-            desc: '🦇 <strong>Ecolocalización de murciélago:</strong> emite pulsos acústicos (950 Hz audible) a 12 m/s mientras persigue una polilla que vuela a 4 m/s.',
+            desc: '🦇 <strong>Ecolocalización de murciélago en bosque nocturno:</strong> emite chirridos de bio-sonar (950 Hz audible) a 12 m/s mientras persigue una polilla a 4 m/s.',
             f: 950, vS: 12, vR: 4, T: 16, mediumSpeed: null,
-            env: 'night_forest', sourceType: 'bat', receiverType: 'moth', toneType: 'sonar'
+            env: 'night_forest', sourceType: 'bat', receiverType: 'moth', soundProfile: 'bat'
         },
         {
             id: 'dolphin_sonar',
             name: 'Delfín / Sonar Marino',
             emoji: '🐬',
+            facesRightByDefault: false,
             sub: 'v = 1480 m/s · En Agua',
-            desc: '🐬 <strong>Propagación acústica submarina:</strong> en el agua el sonido viaja a 1480 m/s (~4.3 veces más rápido que en el aire), reduciendo el corrimiento relativo.',
+            desc: '🐬 <strong>Propagación acústica submarina:</strong> en el océano el sonido viaja a 1480 m/s (~4.3 veces más rápido que en el aire), reduciendo el corrimiento relativo.',
             f: 820, vS: 18, vR: -8, T: 20, mediumSpeed: 1480,
-            env: 'ocean', sourceType: 'dolphin', receiverType: 'submarine', toneType: 'sonar'
+            env: 'ocean', sourceType: 'dolphin', receiverType: 'submarine', soundProfile: 'dolphin'
         },
         {
             id: 'ship_horn',
             name: 'Buque en Puerto',
             emoji: '🚢',
+            facesRightByDefault: true,
             sub: 'vs = 14 m/s · Niebla',
-            desc: '🚢 <strong>Buque carguero entrando a puerto:</strong> sirena de niebla grave (180 Hz) avanzando lentamente a 14 m/s hacia el muelle.',
+            desc: '🚢 <strong>Buque carguero entrando a puerto:</strong> sirena de niebla grave (180 Hz) avanzando lentamente a 14 m/s hacia el muelle y faro.',
             f: 180, vS: 14, vR: 0, T: 15, mediumSpeed: null,
-            env: 'harbor', sourceType: 'ship', receiverType: 'pedestrian', toneType: 'horn'
+            env: 'harbor', sourceType: 'ship', receiverType: 'pedestrian', soundProfile: 'ship'
         },
         {
             id: 'two_cars',
             name: 'Cruce de Autos',
             emoji: '🚗',
+            facesRightByDefault: false,
             sub: 'vs = 25 m/s · vr = -22 m/s',
-            desc: '🚗 <strong>Cruce frontal en carretera:</strong> dos vehículos se acercan mutuamente (25 m/s y -22 m/s), sumando ambos efectos en la frecuencia percibida.',
+            desc: '🚗 <strong>Cruce frontal en carretera:</strong> dos vehículos se acercan mutuamente (25 m/s y -22 m/s) tocando el claxon, sumando ambos efectos.',
             f: 440, vS: 25, vR: -22, T: 20, mediumSpeed: null,
-            env: 'highway', sourceType: 'car_source', receiverType: 'car_receiver', toneType: 'horn'
+            env: 'highway', sourceType: 'car_source', receiverType: 'car_receiver', soundProfile: 'car'
         }
     ];
 
@@ -138,10 +151,21 @@ document.addEventListener('DOMContentLoaded', () => {
         activeScenario: REAL_SCENARIOS[0]
     };
 
+    // MOTOR ACÚSTICO MULTIPERFIL (WEB AUDIO API)
     let audioCtx = null;
-    let oscillator = null;
-    let gainNode = null;
+    let mainOsc = null;
+    let subOsc = null;
+    let lfoOsc = null;
+    let lfoGain = null;
+    let masterGain = null;
+    let subGain = null;
+    let noiseNode = null;
+    let noiseGain = null;
+    let filterNode = null;
     let isAudioPlaying = false;
+    let soundModInterval = null;
+    let soundStep = 0;
+
     let charts = {};
     let isApplyingRemoteSync = false;
 
@@ -253,24 +277,198 @@ document.addEventListener('DOMContentLoaded', () => {
         if (overlay) overlay.textContent = `VIDA REAL · ${sc.name.toUpperCase()}`;
 
         state.waves = [];
-        state.srcX = canvas.width * 0.22;
+        state.srcX = canvas.width * 0.20;
         state.recX = canvas.width * 0.76;
+        soundStep = 0;
         calculatePhysics();
     }
 
-    // 2. WEB AUDIO API (SONIDO DOPPLER Y TIMBRE DE NOTIFICACIÓN)
+    // 2. WEB AUDIO API (SONIDO REALISTA POR ESCENARIO + DOPPLER EN TIEMPO REAL)
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
-            oscillator = audioCtx.createOscillator();
-            gainNode = audioCtx.createGain();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = state.fObs || state.f;
-            gainNode.gain.value = 0;
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
+
+            mainOsc = audioCtx.createOscillator();
+            subOsc = audioCtx.createOscillator();
+            lfoOsc = audioCtx.createOscillator();
+            lfoGain = audioCtx.createGain();
+
+            filterNode = audioCtx.createBiquadFilter();
+            filterNode.type = 'lowpass';
+            filterNode.frequency.value = 3200;
+
+            masterGain = audioCtx.createGain();
+            subGain = audioCtx.createGain();
+            noiseGain = audioCtx.createGain();
+
+            masterGain.gain.value = 0;
+            subGain.gain.value = 0;
+            noiseGain.gain.value = 0;
+            lfoGain.gain.value = 0;
+
+            // Generador de ruido blanco suave para viento/turbina/rotores
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            noiseNode.loop = true;
+
+            mainOsc.connect(filterNode);
+            subOsc.connect(subGain);
+            subGain.connect(filterNode);
+            noiseNode.connect(noiseGain);
+            noiseGain.connect(filterNode);
+
+            lfoOsc.connect(lfoGain);
+            lfoGain.connect(mainOsc.frequency);
+
+            filterNode.connect(masterGain);
+            masterGain.connect(audioCtx.destination);
+
+            mainOsc.start();
+            subOsc.start();
+            lfoOsc.start();
+            noiseNode.start();
+
+            // Bucle de modulación temporal (sirenas bitonales, chirridos de murciélago, clics de delfín)
+            soundModInterval = setInterval(updateSoundModulation, 110);
+        }
+    }
+
+    function updateSoundModulation() {
+        if (!audioCtx || !isAudioPlaying || state.fObs <= 0) return;
+
+        const now = audioCtx.currentTime;
+        const baseF = Math.min(state.fObs, 3600);
+        const profile = state.perspective === 'real' ? state.activeScenario.soundProfile : 'physics';
+        soundStep++;
+
+        if (profile === 'physics') {
+            mainOsc.type = 'sine';
+            subGain.gain.setTargetAtTime(0, now, 0.04);
+            noiseGain.gain.setTargetAtTime(0, now, 0.04);
+            lfoGain.gain.setTargetAtTime(0, now, 0.04);
+            filterNode.frequency.setTargetAtTime(4000, now, 0.05);
+            mainOsc.frequency.setTargetAtTime(baseF, now, 0.05);
+        } else if (profile === 'ambulance') {
+            // Sirena europea bitonal (Hi-Lo cada ~550ms)
+            mainOsc.type = 'triangle';
+            subOsc.type = 'sine';
+            const highTone = Math.floor(soundStep / 5) % 2 === 0;
+            const targetF = highTone ? baseF * 1.18 : baseF * 0.88;
+            mainOsc.frequency.setTargetAtTime(targetF, now, 0.03);
+            subOsc.frequency.setTargetAtTime(targetF * 0.5, now, 0.03);
+            subGain.gain.setTargetAtTime(0.35, now, 0.04);
+            noiseGain.gain.setTargetAtTime(0, now, 0.04);
+            lfoGain.gain.setTargetAtTime(0, now, 0.04);
+            filterNode.frequency.setTargetAtTime(2800, now, 0.05);
+        } else if (profile === 'police') {
+            // Sirena policial continua (Wail ascendente y descendente)
+            mainOsc.type = 'sawtooth';
+            const sweep = Math.sin(soundStep * 0.28) * (baseF * 0.24);
+            mainOsc.frequency.setTargetAtTime(baseF + sweep, now, 0.05);
+            subGain.gain.setTargetAtTime(0, now, 0.04);
+            noiseGain.gain.setTargetAtTime(0, now, 0.04);
+            lfoGain.gain.setTargetAtTime(0, now, 0.04);
+            filterNode.frequency.setTargetAtTime(2200, now, 0.05);
+        } else if (profile === 'firetruck') {
+            // Bocina neumática bitonal grave de bomberos
+            mainOsc.type = 'sawtooth';
+            subOsc.type = 'square';
+            const pulse = Math.floor(soundStep / 4) % 2 === 0;
+            mainOsc.frequency.setTargetAtTime(pulse ? baseF : baseF * 0.84, now, 0.04);
+            subOsc.frequency.setTargetAtTime((pulse ? baseF : baseF * 0.84) * 1.25, now, 0.04);
+            subGain.gain.setTargetAtTime(0.4, now, 0.04);
+            noiseGain.gain.setTargetAtTime(0.03, now, 0.04);
+            filterNode.frequency.setTargetAtTime(1600, now, 0.05);
+        } else if (profile === 'train') {
+            // Silbato ferroviario en acorde de quinta/tercera
+            mainOsc.type = 'triangle';
+            subOsc.type = 'sawtooth';
+            mainOsc.frequency.setTargetAtTime(baseF, now, 0.05);
+            subOsc.frequency.setTargetAtTime(baseF * 1.26, now, 0.05);
+            subGain.gain.setTargetAtTime(0.45, now, 0.05);
+            noiseGain.gain.setTargetAtTime(0.05, now, 0.05);
+            filterNode.frequency.setTargetAtTime(1900, now, 0.05);
+        } else if (profile === 'f1' || profile === 'moto') {
+            // Rugido de motor de altas revoluciones con armónico + vibración
+            mainOsc.type = 'sawtooth';
+            subOsc.type = 'sawtooth';
+            const rpmJitter = Math.sin(soundStep * 0.9) * (baseF * 0.02);
+            mainOsc.frequency.setTargetAtTime(baseF * 0.5 + rpmJitter, now, 0.04);
+            subOsc.frequency.setTargetAtTime(baseF + rpmJitter, now, 0.04);
+            subGain.gain.setTargetAtTime(0.55, now, 0.04);
+            noiseGain.gain.setTargetAtTime(0.06, now, 0.04);
+            lfoOsc.frequency.setTargetAtTime(28, now, 0.05);
+            lfoGain.gain.setTargetAtTime(14, now, 0.05);
+            filterNode.frequency.setTargetAtTime(2500, now, 0.05);
+        } else if (profile === 'jet') {
+            // Turbina jet con flujo aerodinámico intenso
+            mainOsc.type = 'sawtooth';
+            subOsc.type = 'sine';
+            mainOsc.frequency.setTargetAtTime(Math.max(120, baseF * 0.6), now, 0.06);
+            subOsc.frequency.setTargetAtTime(Math.max(80, baseF * 0.3), now, 0.06);
+            subGain.gain.setTargetAtTime(0.5, now, 0.05);
+            noiseGain.gain.setTargetAtTime(0.28, now, 0.05);
+            lfoGain.gain.setTargetAtTime(0, now, 0.04);
+            filterNode.frequency.setTargetAtTime(1400, now, 0.05);
+        } else if (profile === 'helicopter') {
+            // Batido rítmico "chop-chop" de aspas de rotor (~11 Hz)
+            mainOsc.type = 'triangle';
+            subOsc.type = 'sine';
+            const chop = (soundStep % 2 === 0) ? 1.0 : 0.35;
+            mainOsc.frequency.setTargetAtTime(Math.max(90, baseF * 0.45), now, 0.02);
+            subOsc.frequency.setTargetAtTime(Math.max(55, baseF * 0.25), now, 0.02);
+            subGain.gain.setTargetAtTime(0.6 * chop, now, 0.02);
+            noiseGain.gain.setTargetAtTime(0.22 * chop, now, 0.02);
+            filterNode.frequency.setTargetAtTime(950, now, 0.03);
+        } else if (profile === 'bat') {
+            // Pulsos cortos de ecolocalización (chirrido descendente rápido)
+            mainOsc.type = 'sine';
+            const isPulse = (soundStep % 4 === 0);
+            if (isPulse) {
+                mainOsc.frequency.setValueAtTime(Math.min(3800, baseF * 1.35), now);
+                mainOsc.frequency.exponentialRampToValueAtTime(Math.max(250, baseF * 0.85), now + 0.09);
+                masterGain.gain.setTargetAtTime(0.11, now, 0.01);
+            } else {
+                masterGain.gain.setTargetAtTime(0.012, now, 0.03);
+            }
+            subGain.gain.setTargetAtTime(0, now, 0.02);
+            noiseGain.gain.setTargetAtTime(0, now, 0.02);
+            filterNode.frequency.setTargetAtTime(4200, now, 0.03);
+        } else if (profile === 'dolphin') {
+            // Silbidos y clics de sonar marino
+            mainOsc.type = 'sine';
+            subOsc.type = 'triangle';
+            const chirp = Math.sin(soundStep * 0.65) * (baseF * 0.18);
+            mainOsc.frequency.setTargetAtTime(baseF + chirp, now, 0.04);
+            subOsc.frequency.setTargetAtTime(baseF * 1.5 - chirp, now, 0.04);
+            subGain.gain.setTargetAtTime((soundStep % 3 === 0) ? 0.35 : 0.05, now, 0.03);
+            noiseGain.gain.setTargetAtTime(0.02, now, 0.04);
+            filterNode.frequency.setTargetAtTime(3600, now, 0.05);
+        } else if (profile === 'ship') {
+            // Sirena grave de niebla en puerto (profunda y resonante)
+            mainOsc.type = 'sawtooth';
+            subOsc.type = 'sine';
+            mainOsc.frequency.setTargetAtTime(Math.max(75, baseF * 0.5), now, 0.08);
+            subOsc.frequency.setTargetAtTime(Math.max(55, baseF * 0.375), now, 0.08);
+            subGain.gain.setTargetAtTime(0.65, now, 0.06);
+            noiseGain.gain.setTargetAtTime(0.04, now, 0.06);
+            filterNode.frequency.setTargetAtTime(750, now, 0.08);
+        } else if (profile === 'car') {
+            // Claxon bitonal de automóvil (Fa + La)
+            mainOsc.type = 'sawtooth';
+            subOsc.type = 'sawtooth';
+            mainOsc.frequency.setTargetAtTime(baseF, now, 0.04);
+            subOsc.frequency.setTargetAtTime(baseF * 1.25, now, 0.04);
+            subGain.gain.setTargetAtTime(0.5, now, 0.04);
+            noiseGain.gain.setTargetAtTime(0.02, now, 0.04);
+            filterNode.frequency.setTargetAtTime(2100, now, 0.05);
         }
     }
 
@@ -302,11 +500,12 @@ document.addEventListener('DOMContentLoaded', () => {
         isAudioPlaying = !isAudioPlaying;
 
         if (isAudioPlaying) {
-            gainNode.gain.setTargetAtTime(0.1, audioCtx.currentTime, 0.05);
+            masterGain.gain.setTargetAtTime(0.11, audioCtx.currentTime, 0.05);
+            updateSoundModulation();
             btn.innerHTML = '🔇 Silenciar';
             btn.classList.replace('btn-outline', 'btn-primary');
         } else {
-            gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
             btn.innerHTML = '🔊 Sonido';
             btn.classList.replace('btn-primary', 'btn-outline');
         }
@@ -340,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
             inputs.receiverVelocity.value = 0;
         }
 
-        // Si estamos en el escenario submarino (Delfín / Sonar), usar velocidad del sonido en agua
         const isUnderwater = state.perspective === 'real' && state.activeScenario.mediumSpeed;
         state.v = isUnderwater ? state.activeScenario.mediumSpeed : (331.3 + (0.606 * state.T));
 
@@ -354,14 +552,13 @@ document.addEventListener('DOMContentLoaded', () => {
         state.lambda = state.v / state.f;
         const delta = ((state.fObs - state.f) / state.f) * 100;
 
-        if (oscillator && isAudioPlaying && state.fObs > 0) {
-            if (state.perspective === 'real') {
-                const tone = state.activeScenario.toneType;
-                oscillator.type = tone === 'engine' ? 'sawtooth' : (tone === 'sonar' ? 'sine' : 'triangle');
+        if (mainOsc && isAudioPlaying) {
+            if (state.fObs <= 0) {
+                masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.04);
             } else {
-                oscillator.type = 'sine';
+                masterGain.gain.setTargetAtTime(0.11, audioCtx.currentTime, 0.04);
+                updateSoundModulation();
             }
-            oscillator.frequency.setTargetAtTime(Math.min(state.fObs, 4000), audioCtx.currentTime, 0.08);
         }
 
         outputs.f.textContent = `${state.f} Hz`;
@@ -381,6 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('physicsWarning').style.display = 'block';
         } else {
             outputs.observedFreq.innerHTML = `${state.fObs.toFixed(1)} <small>Hz</small>`;
+            outputs.freqState.textContent = '';
             document.getElementById('physicsWarning').style.display = 'none';
             if (Math.abs(delta) < 0.05) outputs.freqState.textContent = 'Sin desplazamiento Doppler';
             else if (delta > 0) outputs.freqState.textContent = 'Tono más agudo (compresión)';
@@ -518,12 +716,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. ANIMACIÓN CANVAS MEJORADA (FÍSICA + 12 ESCENARIOS DE VIDA REAL + ONDAS LUMINOSAS)
+    // 5. ANIMACIÓN CANVAS CON ESCENARIOS ILUSTRADOS Y ORIENTACIÓN CORREGIDA
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
-        state.srcX = canvas.width * 0.25;
-        state.recX = canvas.width * 0.75;
+        state.srcX = canvas.width * 0.22;
+        state.recX = canvas.width * 0.76;
     }
 
     function drawArrow(fx, fy, tx, ty, color) {
@@ -541,9 +739,45 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.restore();
     }
 
+    function drawCloud(cx, cy, scale = 1) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, 16 * scale, 0, Math.PI * 2);
+        ctx.arc(cx + 15 * scale, cy - 5 * scale, 20 * scale, 0, Math.PI * 2);
+        ctx.arc(cx + 34 * scale, cy, 15 * scale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawHouse(x, groundY, w, h, wallColor, roofColor, isNight = false) {
+        // Fachada
+        ctx.fillStyle = wallColor;
+        ctx.fillRect(x, groundY - h, w, h);
+        // Techo triangular
+        ctx.fillStyle = roofColor;
+        ctx.beginPath();
+        ctx.moveTo(x - 5, groundY - h);
+        ctx.lineTo(x + w / 2, groundY - h - 18);
+        ctx.lineTo(x + w + 5, groundY - h);
+        ctx.closePath();
+        ctx.fill();
+        // Puerta y ventanas
+        ctx.fillStyle = isNight ? 'rgba(250, 204, 21, 0.75)' : 'rgba(186, 230, 253, 0.55)';
+        ctx.fillRect(x + 8, groundY - h + 10, 10, 10);
+        ctx.fillRect(x + w - 18, groundY - h + 10, 10, 10);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+        ctx.fillRect(x + w / 2 - 5, groundY - 16, 10, 16);
+    }
+
+    function drawTree(x, groundY, scale = 1) {
+        ctx.fillStyle = '#5c4033';
+        ctx.fillRect(x - 3 * scale, groundY - 16 * scale, 6 * scale, 16 * scale);
+        ctx.fillStyle = '#15803d';
+        ctx.beginPath();
+        ctx.arc(x, groundY - 24 * scale, 14 * scale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
     function drawScenarioBackdrop(w, h, cY) {
         if (state.perspective === 'physics') {
-            // Cuadrícula métrica sutil de laboratorio
             ctx.save();
             ctx.strokeStyle = 'rgba(145, 162, 189, 0.08)';
             ctx.lineWidth = 1;
@@ -564,79 +798,233 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Entornos ilustrados para Vida Real
         const env = state.activeScenario.env;
-        const groundY = cY + 26;
+        const groundY = cY + 18;
         ctx.save();
 
-        if (env === 'ocean') {
-            const grad = ctx.createLinearGradient(0, 0, 0, h);
-            grad.addColorStop(0, 'rgba(2, 44, 82, 0.65)');
-            grad.addColorStop(1, 'rgba(1, 22, 39, 0.85)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, w, h);
+        // 1. CIELO SEGÚN ESCENARIO
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+        if (env === 'city_night' || env === 'night_forest') {
+            skyGrad.addColorStop(0, '#04091a');
+            skyGrad.addColorStop(1, '#111c38');
+        } else if (env === 'ocean') {
+            skyGrad.addColorStop(0, '#03396c');
+            skyGrad.addColorStop(1, '#011627');
+        } else {
+            skyGrad.addColorStop(0, '#0c3b66');
+            skyGrad.addColorStop(1, '#1e5b8c');
+        }
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, env === 'ocean' ? h : groundY);
 
-            ctx.fillStyle = 'rgba(56, 189, 248, 0.06)';
+        // Nubes o estrellas/luna
+        if (env === 'city_night' || env === 'night_forest') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+            for (let i = 0; i < 24; i++) {
+                ctx.fillRect((i * 73) % w, (i * 31) % (groundY - 25), 2, 2);
+            }
+            // Luna
+            ctx.fillStyle = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(w - 95, 42, 14, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (env !== 'ocean') {
+            // Sol suave y nubes desplazándose
+            ctx.fillStyle = 'rgba(253, 224, 71, 0.25)';
+            ctx.beginPath();
+            ctx.arc(90, 42, 22, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
             for (let i = 0; i < 5; i++) {
+                const cx = ((i * 210 + state.time * 0.25) % (w + 120)) - 60;
+                const cy = 34 + (i % 2) * 24;
+                drawCloud(cx, cy, 0.9 + (i % 2) * 0.25);
+            }
+        }
+
+        // 2. DECORACIÓN DE CADA ESCENARIO
+        if (env === 'suburb_road') {
+            // Casas y árboles a lo largo de la avenida (Ambulancia / Bomberos)
+            const palette = [
+                ['#334155', '#b91c1c'],
+                ['#475569', '#d97706'],
+                ['#1e293b', '#0f766e'],
+                ['#3f3f46', '#9a3412']
+            ];
+            let idx = 0;
+            for (let x = 24; x < w - 60; x += 135) {
+                const colors = palette[idx % palette.length];
+                drawHouse(x, groundY, 58, 38 + (idx % 2) * 10, colors[0], colors[1], false);
+                drawTree(x + 82, groundY, 0.95);
+                idx++;
+            }
+        } else if (env === 'city_night') {
+            // Edificios iluminados (Patrulla Policial)
+            for (let x = 18; x < w - 40; x += 78) {
+                const bh = 52 + ((x * 17) % 55);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(x, groundY - bh, 56, bh);
+                ctx.fillStyle = 'rgba(250, 204, 21, 0.45)';
+                for (let wy = groundY - bh + 8; wy < groundY - 12; wy += 13) {
+                    ctx.fillRect(x + 10, wy, 8, 6);
+                    ctx.fillRect(x + 24, wy, 8, 6);
+                    ctx.fillRect(x + 38, wy, 8, 6);
+                }
+            }
+        } else if (env === 'racetrack') {
+            // TARIMAS / GRADAS DE FÓRMULA 1 CON ESPECTADORES Y BANDERAS
+            const standX = Math.max(260, state.recX - 95);
+            const standW = 190;
+            const standH = 58;
+            // Estructura metálica de la tarima
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(standX, groundY - standH, standW, standH);
+            // Techo de tribuna
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(standX - 8, groundY - standH - 8, standW + 16, 8);
+            // Escalones de las gradas y público
+            const crowdColors = ['#38bdf8', '#facc15', '#f43f5e', '#4ade80', '#a78bfa'];
+            for (let row = 0; row < 3; row++) {
+                const ry = groundY - 14 - row * 14;
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(standX + 4, ry, standW - 8, 3);
+                for (let px = standX + 12; px < standX + standW - 12; px += 14) {
+                    ctx.fillStyle = crowdColors[(px + row) % crowdColors.length];
+                    ctx.beginPath();
+                    ctx.arc(px, ry - 4, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            // Valla publicitaria lateral
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(24, groundY - 22, 160, 22);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(24, groundY - 22, 160, 5);
+        } else if (env === 'railway') {
+            // Estación ferroviaria y andén techado
+            const platX = Math.max(240, state.recX - 85);
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(platX, groundY - 46, 170, 6);
+            ctx.fillRect(platX + 25, groundY - 40, 5, 40);
+            ctx.fillRect(platX + 140, groundY - 40, 5, 40);
+            // Semáforo ferroviario
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(110, groundY - 48, 6, 48);
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(113, groundY - 42, 4, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (env === 'highway' || env === 'valley_sky') {
+            // Montañas al fondo y árboles (Motocicleta, Cruce de Autos, Helicóptero)
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(140, groundY - 68);
+            ctx.lineTo(310, groundY);
+            ctx.lineTo(480, groundY - 76);
+            ctx.lineTo(680, groundY);
+            ctx.lineTo(880, groundY - 62);
+            ctx.lineTo(w, groundY);
+            ctx.closePath();
+            ctx.fill();
+
+            for (let x = 40; x < w; x += 120) {
+                drawTree(x, groundY, 0.9);
+            }
+        } else if (env === 'night_forest') {
+            // Siluetas de pinos nocturnos (Murciélago)
+            for (let x = 20; x < w; x += 55) {
+                const th = 55 + (x % 35);
+                ctx.fillStyle = '#062c1e';
                 ctx.beginPath();
-                ctx.moveTo(60 + i * 160, 0);
-                ctx.lineTo(130 + i * 160, 0);
-                ctx.lineTo(210 + i * 160, h);
-                ctx.lineTo(10 + i * 160, h);
+                ctx.moveTo(x, h);
+                ctx.lineTo(x + 20, h - th);
+                ctx.lineTo(x + 40, h);
                 ctx.closePath();
                 ctx.fill();
             }
-            ctx.restore();
-            return;
-        }
-
-        if (env === 'city_road' || env === 'city_night') {
-            ctx.fillStyle = env === 'city_night' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(30, 41, 59, 0.45)';
-            for (let x = 12; x < w; x += 64) {
-                const bh = 45 + ((x * 19) % 60);
-                ctx.fillRect(x, groundY - bh, 48, bh);
-                ctx.fillStyle = env === 'city_night' ? 'rgba(250, 204, 21, 0.28)' : 'rgba(148, 163, 184, 0.14)';
-                for (let wy = groundY - bh + 8; wy < groundY - 10; wy += 14) {
-                    ctx.fillRect(x + 9, wy, 8, 6);
-                    ctx.fillRect(x + 27, wy, 8, 6);
-                }
-                ctx.fillStyle = env === 'city_night' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(30, 41, 59, 0.45)';
-            }
-        } else if (env === 'sky') {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
-            for (let i = 0; i < 4; i++) {
-                const cx = ((i * 220 + state.time * 0.4) % (w + 140)) - 70;
-                const cy = 48 + (i % 2) * 38;
+        } else if (env === 'ocean') {
+            // Rayos de luz submarina, algas y burbujas (Delfín)
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.07)';
+            for (let i = 0; i < 5; i++) {
                 ctx.beginPath();
-                ctx.ellipse(cx, cy, 55, 16, 0, 0, Math.PI * 2);
+                ctx.moveTo(50 + i * 170, 0);
+                ctx.lineTo(120 + i * 170, 0);
+                ctx.lineTo(200 + i * 170, h);
+                ctx.lineTo(10 + i * 170, h);
+                ctx.closePath();
                 ctx.fill();
             }
+            // Burbujas ascendentes
+            ctx.strokeStyle = 'rgba(186, 230, 253, 0.35)';
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 12; i++) {
+                const bx = (i * 89 + 30) % w;
+                const by = h - ((state.time * 0.8 + i * 27) % h);
+                ctx.beginPath();
+                ctx.arc(bx, by, 3 + (i % 3), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        } else if (env === 'harbor') {
+            // Faro en el muelle (Buque en Puerto)
+            const pierX = w - 165;
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(pierX, groundY - 8, 165, 16);
+            // Torre del faro
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(w - 52, groundY - 56, 16, 48);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(w - 52, groundY - 42, 16, 12);
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.arc(w - 44, groundY - 60, 6, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        // Superficie (carretera, vía férrea o puerto)
-        if (env === 'harbor') {
-            ctx.fillStyle = 'rgba(14, 116, 144, 0.35)';
+        // 3. SUPERFICIE DE DESPLAZAMIENTO (CARRETERA, PISTA F1, VÍA FÉRREA O MAR)
+        if (env === 'racetrack') {
+            // Asfalto de circuito F1 + pianitos rojo/blanco
+            ctx.fillStyle = '#1e293b';
             ctx.fillRect(0, groundY, w, h - groundY);
-            ctx.fillStyle = 'rgba(100, 116, 139, 0.65)';
-            ctx.fillRect(w - 170, groundY - 8, 170, 18);
-        } else if (env !== 'sky' && env !== 'night_forest') {
-            ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
-            ctx.fillRect(0, groundY, w, h - groundY);
-            if (env === 'railway') {
-                ctx.fillStyle = '#94a3b8';
-                ctx.fillRect(0, groundY + 3, w, 4);
-                for (let x = 0; x < w; x += 16) ctx.fillRect(x, groundY + 7, 9, 3);
-            } else {
-                ctx.strokeStyle = 'rgba(250, 204, 21, 0.5)';
-                ctx.lineWidth = 2.5;
-                ctx.setLineDash([20, 16]);
-                ctx.beginPath();
-                ctx.moveTo(0, groundY + 18);
-                ctx.lineTo(w, groundY + 18);
-                ctx.stroke();
-                ctx.setLineDash([]);
+            for (let x = 0; x < w; x += 28) {
+                ctx.fillStyle = (Math.floor(x / 28) % 2 === 0) ? '#ef4444' : '#f8fafc';
+                ctx.fillRect(x, groundY, 28, 5);
             }
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([24, 18]);
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 24);
+            ctx.lineTo(w, groundY + 24);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        } else if (env === 'railway') {
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(0, groundY, w, h - groundY);
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(0, groundY + 3, w, 4);
+            ctx.fillStyle = '#78350f';
+            for (let x = 0; x < w; x += 16) ctx.fillRect(x, groundY + 7, 9, 5);
+        } else if (env === 'harbor') {
+            ctx.fillStyle = '#0369a1';
+            ctx.fillRect(0, groundY + 4, w, h - groundY);
+        } else if (env === 'suburb_road' || env === 'city_night' || env === 'highway' || env === 'valley_sky') {
+            // Carretera asfaltada con acera y línea amarilla discontinua
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(0, groundY - 3, w, 5);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, groundY + 2, w, h - groundY);
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([22, 16]);
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 22);
+            ctx.lineTo(w, groundY + 22);
+            ctx.stroke();
+            ctx.setLineDash([]);
         }
+
         ctx.restore();
     }
 
@@ -657,7 +1045,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const alpha = Math.max(0, w.alpha);
 
-            // Halo radial suave para que cada frente de onda destaque visualmente
             const radGrad = ctx.createRadialGradient(
                 w.x, w.y, Math.max(0, w.radius - 10),
                 w.x, w.y, w.radius + 3
@@ -674,7 +1061,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.lineWidth = 2.1 * state.amplitude;
             ctx.shadowBlur = glowStrength;
 
-            // Semicírculo derecho (Cian si vs > 0, Violeta si vs < 0)
             ctx.strokeStyle = state.vS > 0
                 ? `rgba(0, 240, 255, ${Math.min(1, alpha * 0.95)})`
                 : `rgba(167, 139, 250, ${Math.min(1, alpha * 0.9)})`;
@@ -683,7 +1069,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.arc(w.x, w.y, w.radius, -Math.PI / 2, Math.PI / 2);
             ctx.stroke();
 
-            // Semicírculo izquierdo
             ctx.strokeStyle = state.vS < 0
                 ? `rgba(0, 240, 255, ${Math.min(1, alpha * 0.95)})`
                 : `rgba(167, 139, 250, ${Math.min(1, alpha * 0.9)})`;
@@ -693,7 +1078,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.stroke();
         }
 
-        // Cono de Mach si se alcanza o supera la velocidad del sonido
         if (Math.abs(state.vS) >= state.v) {
             const sinTheta = state.v / Math.abs(state.vS);
             const theta = Math.asin(Math.min(1, sinTheta));
@@ -715,12 +1099,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawEntities(cY) {
-        // RECEPTOR
+        // RECEPTOR (Si es F1, lo subimos a las tarimas)
         if (toggles.receiver.checked) {
+            const isF1Stand = state.perspective === 'real' && state.activeScenario.env === 'racetrack';
+            const recY = isF1Stand ? cY - 26 : cY;
+
             if (state.perspective === 'physics') {
                 ctx.save();
                 ctx.beginPath();
-                ctx.arc(state.recX, cY, 10, 0, Math.PI * 2);
+                ctx.arc(state.recX, recY, 10, 0, Math.PI * 2);
                 ctx.fillStyle = '#72a9ff';
                 ctx.shadowColor = '#72a9ff';
                 ctx.shadowBlur = 12;
@@ -738,28 +1125,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     car_receiver: '🚘'
                 };
                 ctx.save();
+                ctx.translate(state.recX, recY);
+                // Si el receptor es un vehículo/ciclista que viene hacia la izquierda (vR < 0), ya mira a la izquierda
+                if (state.vR > 0 && (state.activeScenario.receiverType === 'cyclist' || state.activeScenario.receiverType === 'car_receiver')) {
+                    ctx.scale(-1, 1);
+                }
                 ctx.font = '28px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(recIcons[state.activeScenario.receiverType] || '🧍', state.recX, cY);
+                ctx.fillText(recIcons[state.activeScenario.receiverType] || '🧍', 0, 0);
                 ctx.restore();
             }
 
             if (toggles.arrows.checked && state.vR !== 0) {
                 const dir = state.vR > 0 ? 38 : -38;
-                drawArrow(state.recX, cY + 22, state.recX + dir, cY + 22, '#72a9ff');
+                drawArrow(state.recX, recY + 22, state.recX + dir, recY + 22, '#72a9ff');
             }
             if (toggles.labels.checked) {
                 ctx.save();
                 ctx.fillStyle = '#72a9ff';
                 ctx.font = '600 11px "DM Sans", sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(`Receptor (${state.vR} m/s)`, state.recX, cY - 22);
+                const recText = isF1Stand ? `Espectador en tarima (0 m/s)` : `Receptor (${state.vR} m/s)`;
+                ctx.fillText(recText, state.recX, recY - 22);
                 ctx.restore();
             }
         }
 
-        // FUENTE SONORA
+        // FUENTE SONORA (Con orientación corregida según dirección del movimiento)
         if (state.perspective === 'physics') {
             ctx.save();
             ctx.beginPath();
@@ -772,8 +1165,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             ctx.save();
             ctx.translate(state.srcX, cY);
-            if (state.vS < 0) ctx.scale(-1, 1);
-            ctx.font = '32px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+
+            // Corrección de orientación:
+            // Los emojis de vehículos/animales miran a la izquierda por defecto (facesRightByDefault = false).
+            // Si van hacia la derecha (vS >= 0), los volteamos con scale(-1, 1) para que miren hacia adelante.
+            const movingRight = state.vS >= 0;
+            const shouldFlip = state.activeScenario.facesRightByDefault ? !movingRight : movingRight;
+            if (shouldFlip) {
+                ctx.scale(-1, 1);
+            }
+
+            ctx.font = '34px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(state.activeScenario.emoji, 0, 0);
@@ -812,7 +1214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function draw() {
         if (!state.isPaused) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const cY = canvas.height / 2;
+            const cY = canvas.height / 2 + 12;
 
             drawScenarioBackdrop(canvas.width, canvas.height, cY);
 
@@ -1123,7 +1525,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 Notification.requestPermission();
             }
 
-            // 0. CLASE VIRTUAL EN VIVO Y MODO CLASE GUIADA
             const liveDocRef = doc(window.firebaseDb, "clase_vivo", "estado");
             const liveStatusBadge = document.getElementById('liveStatusBadge');
             const toggleLiveClassBtn = document.getElementById('toggleLiveClassBtn');
