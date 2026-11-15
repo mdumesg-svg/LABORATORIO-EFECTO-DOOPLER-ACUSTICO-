@@ -4,15 +4,127 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // CATÁLOGO DE 12 ESCENARIOS DE LA VIDA REAL
+    const REAL_SCENARIOS = [
+        {
+            id: 'ambulance',
+            name: 'Ambulancia',
+            emoji: '🚑',
+            sub: 'vs = 32 m/s · Sirena',
+            desc: '🚑 <strong>Ambulancia en avenida urbana:</strong> sirena bitonal a 660 Hz desplazándose a 32 m/s (115 km/h) frente a un peatón en reposo.',
+            f: 660, vS: 32, vR: 0, T: 20, mediumSpeed: null,
+            env: 'city_road', sourceType: 'ambulance', receiverType: 'pedestrian', toneType: 'siren_hi_lo'
+        },
+        {
+            id: 'police',
+            name: 'Patrulla Policial',
+            emoji: '🚓',
+            sub: 'vs = 38 m/s · Persecución',
+            desc: '🚓 <strong>Patrulla policial en persecución:</strong> sirena modulada a 780 Hz avanzando a 38 m/s frente a un vehículo estacionado.',
+            f: 780, vS: 38, vR: 0, T: 20, mediumSpeed: null,
+            env: 'city_night', sourceType: 'police', receiverType: 'car_parked', toneType: 'siren_sweep'
+        },
+        {
+            id: 'firetruck',
+            name: 'Camión de Bomberos',
+            emoji: '🚒',
+            sub: 'vs = 28 m/s · vr = -6 m/s',
+            desc: '🚒 <strong>Camión de bomberos:</strong> bocina grave de 320 Hz avanzando a 28 m/s mientras un ciclista se aproxima en sentido contrario a 6 m/s.',
+            f: 320, vS: 28, vR: -6, T: 22, mediumSpeed: null,
+            env: 'city_road', sourceType: 'firetruck', receiverType: 'cyclist', toneType: 'horn'
+        },
+        {
+            id: 'bullet_train',
+            name: 'Tren Bala',
+            emoji: '🚄',
+            sub: 'vs = 85 m/s · 306 km/h',
+            desc: '🚄 <strong>Tren de alta velocidad:</strong> cruza una estación ferroviaria a 85 m/s emitiendo su silbato a 440 Hz frente a un pasajero en el andén.',
+            f: 440, vS: 85, vR: 0, T: 20, mediumSpeed: null,
+            env: 'railway', sourceType: 'train', receiverType: 'pedestrian', toneType: 'horn'
+        },
+        {
+            id: 'f1_car',
+            name: 'Auto Fórmula 1',
+            emoji: '🏎️',
+            sub: 'vs = 92 m/s · 331 km/h',
+            desc: '🏎️ <strong>Monoplaza Fórmula 1 en recta:</strong> motor a 540 Hz pasando a 92 m/s frente a las gradas (efecto acústico "neeee-owww").',
+            f: 540, vS: 92, vR: 0, T: 26, mediumSpeed: null,
+            env: 'racetrack', sourceType: 'f1', receiverType: 'spectator', toneType: 'engine'
+        },
+        {
+            id: 'supersonic_jet',
+            name: 'Caza Supersónico',
+            emoji: '✈️',
+            sub: 'vs = 400 m/s · Mach 1.16',
+            desc: '✈️ <strong>Aeronave supersónica (Mach > 1):</strong> supera la velocidad del sonido (400 m/s) acumulando los frentes en un Cono de Mach.',
+            f: 300, vS: 400, vR: 0, T: 20, mediumSpeed: null,
+            env: 'sky', sourceType: 'jet', receiverType: 'observer_ground', toneType: 'engine'
+        },
+        {
+            id: 'helicopter',
+            name: 'Helicóptero',
+            emoji: '🚁',
+            sub: 'vs = 45 m/s · Rotores',
+            desc: '🚁 <strong>Helicóptero de rescate en vuelo rasante:</strong> frecuencia de rotores de 210 Hz desplazándose a 45 m/s sobre un observador.',
+            f: 210, vS: 45, vR: 0, T: 18, mediumSpeed: null,
+            env: 'sky', sourceType: 'helicopter', receiverType: 'pedestrian', toneType: 'engine'
+        },
+        {
+            id: 'motorcycle',
+            name: 'Motocicleta',
+            emoji: '🏍️',
+            sub: 'vs = 42 m/s · Carretera',
+            desc: '🏍️ <strong>Motocicleta deportiva:</strong> escape a 490 Hz acelerando a 42 m/s en carretera abierta frente a un peatón.',
+            f: 490, vS: 42, vR: 0, T: 24, mediumSpeed: null,
+            env: 'highway', sourceType: 'moto', receiverType: 'pedestrian', toneType: 'engine'
+        },
+        {
+            id: 'bat',
+            name: 'Murciélago (Sonar)',
+            emoji: '🦇',
+            sub: 'vs = 12 m/s · Bio-sonar',
+            desc: '🦇 <strong>Ecolocalización de murciélago:</strong> emite pulsos acústicos (950 Hz audible) a 12 m/s mientras persigue una polilla que vuela a 4 m/s.',
+            f: 950, vS: 12, vR: 4, T: 16, mediumSpeed: null,
+            env: 'night_forest', sourceType: 'bat', receiverType: 'moth', toneType: 'sonar'
+        },
+        {
+            id: 'dolphin_sonar',
+            name: 'Delfín / Sonar Marino',
+            emoji: '🐬',
+            sub: 'v = 1480 m/s · En Agua',
+            desc: '🐬 <strong>Propagación acústica submarina:</strong> en el agua el sonido viaja a 1480 m/s (~4.3 veces más rápido que en el aire), reduciendo el corrimiento relativo.',
+            f: 820, vS: 18, vR: -8, T: 20, mediumSpeed: 1480,
+            env: 'ocean', sourceType: 'dolphin', receiverType: 'submarine', toneType: 'sonar'
+        },
+        {
+            id: 'ship_horn',
+            name: 'Buque en Puerto',
+            emoji: '🚢',
+            sub: 'vs = 14 m/s · Niebla',
+            desc: '🚢 <strong>Buque carguero entrando a puerto:</strong> sirena de niebla grave (180 Hz) avanzando lentamente a 14 m/s hacia el muelle.',
+            f: 180, vS: 14, vR: 0, T: 15, mediumSpeed: null,
+            env: 'harbor', sourceType: 'ship', receiverType: 'pedestrian', toneType: 'horn'
+        },
+        {
+            id: 'two_cars',
+            name: 'Cruce de Autos',
+            emoji: '🚗',
+            sub: 'vs = 25 m/s · vr = -22 m/s',
+            desc: '🚗 <strong>Cruce frontal en carretera:</strong> dos vehículos se acercan mutuamente (25 m/s y -22 m/s), sumando ambos efectos en la frecuencia percibida.',
+            f: 440, vS: 25, vR: -22, T: 20, mediumSpeed: null,
+            env: 'highway', sourceType: 'car_source', receiverType: 'car_receiver', toneType: 'horn'
+        }
+    ];
+
     // 1. ESTADO GLOBAL
     const state = {
         f: 440,
         vS: 20,
         vR: 0,
         T: 20,
-        amplitude: 1.0,
+        amplitude: 1.6,
         waveScale: 1.0,
-        waveSpacing: 1.0,
+        waveSpacing: 1.2,
         v: 343.4,
         fObs: 440,
         lambda: 0.78,
@@ -21,7 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
         waves: [],
         srcX: 0,
         recX: 0,
-        history: []
+        history: [],
+        perspective: 'physics', // 'physics' | 'real'
+        activeScenario: REAL_SCENARIOS[0]
     };
 
     let audioCtx = null;
@@ -69,6 +183,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const canvas = document.getElementById('waveCanvas');
     const ctx = canvas.getContext('2d');
+
+    // CONSTRUCCIÓN DE BOTONES DE ESCENARIOS DE LA VIDA REAL
+    function initRealScenariosUI() {
+        const grid = document.getElementById('realScenariosGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        REAL_SCENARIOS.forEach((sc) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'real-sc-btn' + (sc.id === state.activeScenario.id ? ' active' : '');
+            btn.dataset.scenarioId = sc.id;
+            btn.innerHTML = `
+                <span class="sc-emoji">${sc.emoji}</span>
+                <span class="sc-text">
+                    <span class="sc-name">${sc.name}</span>
+                    <span class="sc-sub">${sc.sub}</span>
+                </span>
+            `;
+            btn.addEventListener('click', () => selectRealScenario(sc.id));
+            grid.appendChild(btn);
+        });
+    }
+
+    function setPerspectiveMode(mode) {
+        state.perspective = mode;
+        const modePhysicsBtn = document.getElementById('modePhysicsBtn');
+        const modeRealBtn = document.getElementById('modeRealBtn');
+        const drawer = document.getElementById('realScenariosDrawer');
+        const badge = document.getElementById('activeScenarioBadge');
+        const overlay = document.getElementById('canvasModeOverlay');
+
+        if (mode === 'real') {
+            modeRealBtn.classList.add('active');
+            modePhysicsBtn.classList.remove('active');
+            drawer.style.display = 'block';
+            selectRealScenario(state.activeScenario.id);
+        } else {
+            modePhysicsBtn.classList.add('active');
+            modeRealBtn.classList.remove('active');
+            drawer.style.display = 'none';
+            badge.textContent = 'Vista esquemática de laboratorio';
+            if (overlay) overlay.textContent = 'SIMULACIÓN ACTIVA · FÍSICA';
+            calculatePhysics();
+        }
+    }
+
+    function selectRealScenario(scenarioId) {
+        const sc = REAL_SCENARIOS.find(s => s.id === scenarioId) || REAL_SCENARIOS[0];
+        state.activeScenario = sc;
+
+        inputs.frequency.value = sc.f;
+        inputs.sourceVelocity.value = sc.vS;
+        inputs.receiverVelocity.value = sc.vR;
+        inputs.temperature.value = sc.T;
+        inputs.directionMode.value = 'custom';
+
+        document.querySelectorAll('.real-sc-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.scenarioId === sc.id);
+        });
+
+        const contextEl = document.getElementById('scenarioContextText');
+        const badge = document.getElementById('activeScenarioBadge');
+        const overlay = document.getElementById('canvasModeOverlay');
+
+        if (contextEl) contextEl.innerHTML = sc.desc;
+        if (badge) badge.textContent = `${sc.emoji} ${sc.name}`;
+        if (overlay) overlay.textContent = `VIDA REAL · ${sc.name.toUpperCase()}`;
+
+        state.waves = [];
+        state.srcX = canvas.width * 0.22;
+        state.recX = canvas.width * 0.76;
+        calculatePhysics();
+    }
 
     // 2. WEB AUDIO API (SONIDO DOPPLER Y TIMBRE DE NOTIFICACIÓN)
     function initAudio() {
@@ -152,18 +340,27 @@ document.addEventListener('DOMContentLoaded', () => {
             inputs.receiverVelocity.value = 0;
         }
 
-        state.v = 331.3 + (0.606 * state.T);
+        // Si estamos en el escenario submarino (Delfín / Sonar), usar velocidad del sonido en agua
+        const isUnderwater = state.perspective === 'real' && state.activeScenario.mediumSpeed;
+        state.v = isUnderwater ? state.activeScenario.mediumSpeed : (331.3 + (0.606 * state.T));
+
         let denom = state.v - state.vS;
         let num = state.v - state.vR;
         if (Math.abs(denom) < 0.1) denom = 0.1;
 
         state.fObs = state.f * (num / denom);
-        if (state.fObs < 0 || state.vS >= state.v) state.fObs = 0;
+        if (state.fObs < 0 || Math.abs(state.vS) >= state.v) state.fObs = 0;
 
         state.lambda = state.v / state.f;
         const delta = ((state.fObs - state.f) / state.f) * 100;
 
         if (oscillator && isAudioPlaying && state.fObs > 0) {
+            if (state.perspective === 'real') {
+                const tone = state.activeScenario.toneType;
+                oscillator.type = tone === 'engine' ? 'sawtooth' : (tone === 'sonar' ? 'sine' : 'triangle');
+            } else {
+                oscillator.type = 'sine';
+            }
             oscillator.frequency.setTargetAtTime(Math.min(state.fObs, 4000), audioCtx.currentTime, 0.08);
         }
 
@@ -176,11 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
         outputs.waveSpacing.textContent = `${state.waveSpacing.toFixed(1)}×`;
 
         outputs.soundSpeed.innerHTML = `${state.v.toFixed(1)} <small>m/s</small>`;
-        outputs.tempNote.textContent = `A ${state.T} °C`;
+        outputs.tempNote.textContent = isUnderwater ? 'Medio acuático (20 °C)' : `A ${state.T} °C`;
 
-        if (state.vS >= state.v) {
+        if (Math.abs(state.vS) >= state.v) {
             outputs.observedFreq.innerHTML = `Supersónico`;
-            outputs.freqState.textContent = `Mach ${(state.vS / state.v).toFixed(2)}`;
+            outputs.freqState.textContent = `Mach ${(Math.abs(state.vS) / state.v).toFixed(2)}`;
             document.getElementById('physicsWarning').style.display = 'block';
         } else {
             outputs.observedFreq.innerHTML = `${state.fObs.toFixed(1)} <small>Hz</small>`;
@@ -193,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         outputs.emittedWave.innerHTML = `${state.lambda.toFixed(3)} <small>m</small>`;
         outputs.freqDelta.innerHTML = `${delta > 0 ? '+' : ''}${delta.toFixed(1)} <small>%</small>`;
 
-        updateFormulas(delta, num, denom);
+        updateFormulas(delta, num, denom, isUnderwater);
         updateDataTable();
         updateCharts();
 
@@ -202,9 +399,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateFormulas(delta, num, denom) {
-        document.getElementById('proc-sound').innerHTML =
-            `v = 331,3 + 0,606(${state.T})<br><strong>v = ${state.v.toFixed(1)} m/s</strong>`;
+    function updateFormulas(delta, num, denom, isUnderwater) {
+        document.getElementById('proc-sound').innerHTML = isUnderwater
+            ? `Medio acuático: <strong>v = 1480.0 m/s</strong>`
+            : `v = 331,3 + 0,606(${state.T})<br><strong>v = ${state.v.toFixed(1)} m/s</strong>`;
 
         document.getElementById('proc-doppler').innerHTML =
             `f′ = ${state.f} · (${state.v.toFixed(1)} ${state.vR >= 0 ? '−' : '+'} ${Math.abs(state.vR)}) / (${state.v.toFixed(1)} ${state.vS >= 0 ? '−' : '+'} ${Math.abs(state.vS)})<br>` +
@@ -213,11 +411,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('proc-emitted').innerHTML =
             `λ = ${state.v.toFixed(1)} / ${state.f}<br><strong>λ = ${state.lambda.toFixed(3)} m</strong>`;
 
-        const lambdaFront = Math.max(0, (state.v - state.vS) / state.f);
-        const lambdaBack = (state.v + state.vS) / state.f;
+        const lambdaFront = Math.max(0, (state.v - Math.abs(state.vS)) / state.f);
+        const lambdaBack = (state.v + Math.abs(state.vS)) / state.f;
         document.getElementById('proc-frontback').innerHTML =
-            `Frente: λ = (${state.v.toFixed(1)} − ${state.vS}) / ${state.f} = <strong>${lambdaFront.toFixed(3)} m</strong><br>` +
-            `Detrás: λ = (${state.v.toFixed(1)} + ${state.vS}) / ${state.f} = <strong>${lambdaBack.toFixed(3)} m</strong>`;
+            `Frente: λ = (${state.v.toFixed(1)} − ${Math.abs(state.vS)}) / ${state.f} = <strong>${lambdaFront.toFixed(3)} m</strong><br>` +
+            `Detrás: λ = (${state.v.toFixed(1)} + ${Math.abs(state.vS)}) / ${state.f} = <strong>${lambdaBack.toFixed(3)} m</strong>`;
 
         document.getElementById('proc-delta').innerHTML =
             `%Δf = [(${state.fObs.toFixed(1)} − ${state.f}) / ${state.f}] · 100<br><strong>%Δf = ${delta.toFixed(1)} %</strong>`;
@@ -300,8 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
         charts.source.update();
 
         charts.wavelength.data.datasets[0].data = [
-            Math.max(0, (state.v - state.vS) / state.f),
-            (state.v + state.vS) / state.f
+            Math.max(0, (state.v - Math.abs(state.vS)) / state.f),
+            (state.v + Math.abs(state.vS)) / state.f
         ];
         charts.wavelength.update();
 
@@ -320,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. ANIMACIÓN CANVAS
+    // 5. ANIMACIÓN CANVAS MEJORADA (FÍSICA + 12 ESCENARIOS DE VIDA REAL + ONDAS LUMINOSAS)
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
@@ -330,21 +528,293 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawArrow(fx, fy, tx, ty, color) {
         const angle = Math.atan2(ty - fy, tx - fx);
+        ctx.save();
         ctx.beginPath();
         ctx.moveTo(fx, fy);
         ctx.lineTo(tx, ty);
-        ctx.lineTo(tx - 7 * Math.cos(angle - Math.PI / 6), ty - 7 * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(tx - 8 * Math.cos(angle - Math.PI / 6), ty - 8 * Math.sin(angle - Math.PI / 6));
         ctx.moveTo(tx, ty);
-        ctx.lineTo(tx - 7 * Math.cos(angle + Math.PI / 6), ty - 7 * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(tx - 8 * Math.cos(angle + Math.PI / 6), ty - 8 * Math.sin(angle + Math.PI / 6));
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.4;
         ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawScenarioBackdrop(w, h, cY) {
+        if (state.perspective === 'physics') {
+            // Cuadrícula métrica sutil de laboratorio
+            ctx.save();
+            ctx.strokeStyle = 'rgba(145, 162, 189, 0.08)';
+            ctx.lineWidth = 1;
+            const step = 40;
+            for (let x = 0; x < w; x += step) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            for (let y = 0; y < h; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+            return;
+        }
+
+        // Entornos ilustrados para Vida Real
+        const env = state.activeScenario.env;
+        const groundY = cY + 26;
+        ctx.save();
+
+        if (env === 'ocean') {
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, 'rgba(2, 44, 82, 0.65)');
+            grad.addColorStop(1, 'rgba(1, 22, 39, 0.85)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.06)';
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.moveTo(60 + i * 160, 0);
+                ctx.lineTo(130 + i * 160, 0);
+                ctx.lineTo(210 + i * 160, h);
+                ctx.lineTo(10 + i * 160, h);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+            return;
+        }
+
+        if (env === 'city_road' || env === 'city_night') {
+            ctx.fillStyle = env === 'city_night' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(30, 41, 59, 0.45)';
+            for (let x = 12; x < w; x += 64) {
+                const bh = 45 + ((x * 19) % 60);
+                ctx.fillRect(x, groundY - bh, 48, bh);
+                ctx.fillStyle = env === 'city_night' ? 'rgba(250, 204, 21, 0.28)' : 'rgba(148, 163, 184, 0.14)';
+                for (let wy = groundY - bh + 8; wy < groundY - 10; wy += 14) {
+                    ctx.fillRect(x + 9, wy, 8, 6);
+                    ctx.fillRect(x + 27, wy, 8, 6);
+                }
+                ctx.fillStyle = env === 'city_night' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(30, 41, 59, 0.45)';
+            }
+        } else if (env === 'sky') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+            for (let i = 0; i < 4; i++) {
+                const cx = ((i * 220 + state.time * 0.4) % (w + 140)) - 70;
+                const cy = 48 + (i % 2) * 38;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, 55, 16, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Superficie (carretera, vía férrea o puerto)
+        if (env === 'harbor') {
+            ctx.fillStyle = 'rgba(14, 116, 144, 0.35)';
+            ctx.fillRect(0, groundY, w, h - groundY);
+            ctx.fillStyle = 'rgba(100, 116, 139, 0.65)';
+            ctx.fillRect(w - 170, groundY - 8, 170, 18);
+        } else if (env !== 'sky' && env !== 'night_forest') {
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
+            ctx.fillRect(0, groundY, w, h - groundY);
+            if (env === 'railway') {
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(0, groundY + 3, w, 4);
+                for (let x = 0; x < w; x += 16) ctx.fillRect(x, groundY + 7, 9, 3);
+            } else {
+                ctx.strokeStyle = 'rgba(250, 204, 21, 0.5)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([20, 16]);
+                ctx.beginPath();
+                ctx.moveTo(0, groundY + 18);
+                ctx.lineTo(w, groundY + 18);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawHighVisibilityWaves(cY) {
+        if (!toggles.waves.checked) return;
+
+        ctx.save();
+        const glowStrength = Math.min(24, 10 * state.amplitude);
+
+        for (let i = state.waves.length - 1; i >= 0; i--) {
+            const w = state.waves[i];
+            w.radius += (state.v / 110) * state.waveScale;
+            w.alpha -= 0.0028 * state.waveScale;
+            if (w.alpha <= 0) {
+                state.waves.splice(i, 1);
+                continue;
+            }
+
+            const alpha = Math.max(0, w.alpha);
+
+            // Halo radial suave para que cada frente de onda destaque visualmente
+            const radGrad = ctx.createRadialGradient(
+                w.x, w.y, Math.max(0, w.radius - 10),
+                w.x, w.y, w.radius + 3
+            );
+            radGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
+            radGrad.addColorStop(0.75, `rgba(0, 240, 255, ${alpha * 0.14})`);
+            radGrad.addColorStop(1, `rgba(167, 139, 250, ${alpha * 0.22})`);
+
+            ctx.fillStyle = radGrad;
+            ctx.beginPath();
+            ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.lineWidth = 2.1 * state.amplitude;
+            ctx.shadowBlur = glowStrength;
+
+            // Semicírculo derecho (Cian si vs > 0, Violeta si vs < 0)
+            ctx.strokeStyle = state.vS > 0
+                ? `rgba(0, 240, 255, ${Math.min(1, alpha * 0.95)})`
+                : `rgba(167, 139, 250, ${Math.min(1, alpha * 0.9)})`;
+            ctx.shadowColor = state.vS > 0 ? '#00f0ff' : '#a78bfa';
+            ctx.beginPath();
+            ctx.arc(w.x, w.y, w.radius, -Math.PI / 2, Math.PI / 2);
+            ctx.stroke();
+
+            // Semicírculo izquierdo
+            ctx.strokeStyle = state.vS < 0
+                ? `rgba(0, 240, 255, ${Math.min(1, alpha * 0.95)})`
+                : `rgba(167, 139, 250, ${Math.min(1, alpha * 0.9)})`;
+            ctx.shadowColor = state.vS < 0 ? '#00f0ff' : '#a78bfa';
+            ctx.beginPath();
+            ctx.arc(w.x, w.y, w.radius, Math.PI / 2, (3 * Math.PI) / 2);
+            ctx.stroke();
+        }
+
+        // Cono de Mach si se alcanza o supera la velocidad del sonido
+        if (Math.abs(state.vS) >= state.v) {
+            const sinTheta = state.v / Math.abs(state.vS);
+            const theta = Math.asin(Math.min(1, sinTheta));
+            const coneLen = 240;
+            const dir = state.vS >= 0 ? -1 : 1;
+
+            ctx.strokeStyle = '#f43f5e';
+            ctx.shadowColor = '#f43f5e';
+            ctx.shadowBlur = 16;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(state.srcX + dir * coneLen * Math.cos(theta), cY - coneLen * Math.sin(theta));
+            ctx.lineTo(state.srcX, cY);
+            ctx.lineTo(state.srcX + dir * coneLen * Math.cos(theta), cY + coneLen * Math.sin(theta));
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    function drawEntities(cY) {
+        // RECEPTOR
+        if (toggles.receiver.checked) {
+            if (state.perspective === 'physics') {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(state.recX, cY, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#72a9ff';
+                ctx.shadowColor = '#72a9ff';
+                ctx.shadowBlur = 12;
+                ctx.fill();
+                ctx.restore();
+            } else {
+                const recIcons = {
+                    pedestrian: '🧍',
+                    car_parked: '🚙',
+                    cyclist: '🚴',
+                    spectator: '🙋',
+                    observer_ground: '🔭',
+                    moth: '🦋',
+                    submarine: '🛥️',
+                    car_receiver: '🚘'
+                };
+                ctx.save();
+                ctx.font = '28px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(recIcons[state.activeScenario.receiverType] || '🧍', state.recX, cY);
+                ctx.restore();
+            }
+
+            if (toggles.arrows.checked && state.vR !== 0) {
+                const dir = state.vR > 0 ? 38 : -38;
+                drawArrow(state.recX, cY + 22, state.recX + dir, cY + 22, '#72a9ff');
+            }
+            if (toggles.labels.checked) {
+                ctx.save();
+                ctx.fillStyle = '#72a9ff';
+                ctx.font = '600 11px "DM Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Receptor (${state.vR} m/s)`, state.recX, cY - 22);
+                ctx.restore();
+            }
+        }
+
+        // FUENTE SONORA
+        if (state.perspective === 'physics') {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(state.srcX, cY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffb66b';
+            ctx.shadowColor = '#ffb66b';
+            ctx.shadowBlur = 14;
+            ctx.fill();
+            ctx.restore();
+        } else {
+            ctx.save();
+            ctx.translate(state.srcX, cY);
+            if (state.vS < 0) ctx.scale(-1, 1);
+            ctx.font = '32px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(state.activeScenario.emoji, 0, 0);
+
+            // Luz estroboscópica para emergencias (Ambulancia, Patrulla, Bomberos)
+            const sType = state.activeScenario.sourceType;
+            if (sType === 'ambulance' || sType === 'police' || sType === 'firetruck') {
+                const flash = Math.sin(state.time * 0.35) > 0;
+                ctx.fillStyle = flash ? '#ef4444' : '#3b82f6';
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 16;
+                ctx.beginPath();
+                ctx.arc(0, -16, 4.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        if (toggles.arrows.checked && state.vS !== 0) {
+            const dir = state.vS > 0 ? 38 : -38;
+            drawArrow(state.srcX, cY + 22, state.srcX + dir, cY + 22, '#ffb66b');
+        }
+        if (toggles.labels.checked) {
+            ctx.save();
+            ctx.fillStyle = '#ffb66b';
+            ctx.font = '600 11px "DM Sans", sans-serif';
+            ctx.textAlign = 'center';
+            const srcLabel = state.perspective === 'real'
+                ? `${state.activeScenario.name} (${state.vS} m/s)`
+                : `Fuente (${state.vS} m/s)`;
+            ctx.fillText(srcLabel, state.srcX, cY - 22);
+            ctx.restore();
+        }
     }
 
     function draw() {
         if (!state.isPaused) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const cY = canvas.height / 2;
+
+            drawScenarioBackdrop(canvas.width, canvas.height, cY);
 
             state.srcX += (state.vS / 340) * 2.2 * state.waveScale;
             if (toggles.receiver.checked) {
@@ -357,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.recX < -40) state.recX = canvas.width + 40;
 
             state.time++;
-            const emitInterval = Math.max(4, Math.floor((85 / (state.f / 440)) / state.waveSpacing));
+            const emitInterval = Math.max(4, Math.floor((78 / (state.f / 440)) / state.waveSpacing));
             if (state.time % emitInterval === 0 && toggles.waves.checked) {
                 state.waves.push({ x: state.srcX, y: cY, radius: 0, alpha: 1 });
             }
@@ -372,59 +842,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.setLineDash([]);
             }
 
-            if (toggles.waves.checked) {
-                for (let i = state.waves.length - 1; i >= 0; i--) {
-                    const w = state.waves[i];
-                    w.radius += (state.v / 110) * state.waveScale;
-                    w.alpha -= 0.0032 * state.waveScale;
-                    if (w.alpha <= 0) {
-                        state.waves.splice(i, 1);
-                        continue;
-                    }
-                    ctx.beginPath();
-                    ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(99, 215, 198, ${Math.max(0, w.alpha)})`;
-                    ctx.lineWidth = 1.4 * state.amplitude;
-                    ctx.stroke();
-                }
-            }
-
-            if (toggles.receiver.checked) {
-                ctx.beginPath();
-                ctx.arc(state.recX, cY, 9, 0, Math.PI * 2);
-                ctx.fillStyle = '#72a9ff';
-                ctx.fill();
-
-                if (toggles.arrows.checked && state.vR !== 0) {
-                    const dir = state.vR > 0 ? 34 : -34;
-                    drawArrow(state.recX, cY + 18, state.recX + dir, cY + 18, '#72a9ff');
-                }
-                if (toggles.labels.checked) {
-                    ctx.fillStyle = '#72a9ff';
-                    ctx.font = '600 11px "DM Sans", sans-serif';
-                    ctx.fillText(`Receptor (${state.vR} m/s)`, state.recX - 42, cY - 16);
-                }
-            }
-
-            ctx.beginPath();
-            ctx.arc(state.srcX, cY, 9, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffb66b';
-            ctx.fill();
-
-            if (toggles.arrows.checked && state.vS !== 0) {
-                const dir = state.vS > 0 ? 34 : -34;
-                drawArrow(state.srcX, cY + 18, state.srcX + dir, cY + 18, '#ffb66b');
-            }
-            if (toggles.labels.checked) {
-                ctx.fillStyle = '#ffb66b';
-                ctx.font = '600 11px "DM Sans", sans-serif';
-                ctx.fillText(`Fuente (${state.vS} m/s)`, state.srcX - 38, cY - 16);
-            }
+            drawHighVisibilityWaves(cY);
+            drawEntities(cY);
         }
         requestAnimationFrame(draw);
     }
 
-    // 6. EVENTOS DE SIMULADOR
+    // 6. EVENTOS DE SIMULADOR Y SELECTOR DE PERSPECTIVA
+    document.getElementById('modePhysicsBtn').addEventListener('click', () => setPerspectiveMode('physics'));
+    document.getElementById('modeRealBtn').addEventListener('click', () => setPerspectiveMode('real'));
+
     Object.values(inputs).forEach(input => {
         if (input && input.id !== 'themeSelect') {
             input.addEventListener('input', () => {
@@ -456,11 +883,11 @@ document.addEventListener('DOMContentLoaded', () => {
         inputs.sourceVelocity.value = 20;
         inputs.receiverVelocity.value = 0;
         inputs.temperature.value = 20;
-        inputs.amplitude.value = 1;
-        inputs.waveScale.value = 1;
-        inputs.waveSpacing.value = 1;
+        inputs.amplitude.value = 1.6;
+        inputs.waveScale.value = 1.0;
+        inputs.waveSpacing.value = 1.2;
         inputs.directionMode.value = 'custom';
-        calculatePhysics();
+        setPerspectiveMode('physics');
         state.waves = [];
     });
 
@@ -696,9 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Notification.requestPermission();
             }
 
-            // ==========================================
             // 0. CLASE VIRTUAL EN VIVO Y MODO CLASE GUIADA
-            // ==========================================
             const liveDocRef = doc(window.firebaseDb, "clase_vivo", "estado");
             const liveStatusBadge = document.getElementById('liveStatusBadge');
             const toggleLiveClassBtn = document.getElementById('toggleLiveClassBtn');
@@ -732,7 +1157,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 amplitude: state.amplitude,
                                 waveScale: state.waveScale,
                                 waveSpacing: state.waveSpacing,
-                                directionMode: inputs.directionMode.value
+                                directionMode: inputs.directionMode.value,
+                                perspective: state.perspective,
+                                scenarioId: state.activeScenario.id
                             },
                             actualizado: new Date()
                         }, { merge: true });
@@ -782,7 +1209,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 wasClassActive = isClassActive;
 
-                // Enlace externo opcional (Google Meet / Zoom)
                 if (data.enlaceExterno) {
                     externalMeetBar.style.display = 'block';
                     externalMeetLinkBtn.href = data.enlaceExterno;
@@ -797,13 +1223,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Modo Clase Guiada (Simulador sincronizado)
                 if (currentUserRole === 'docente') {
                     syncSimulatorToggle.checked = Boolean(data.syncSimulador);
                 } else {
                     if (data.syncSimulador && data.simState) {
                         guidedSyncNotice.style.display = 'block';
                         isApplyingRemoteSync = true;
+                        if (data.simState.perspective && data.simState.perspective !== state.perspective) {
+                            setPerspectiveMode(data.simState.perspective);
+                        }
+                        if (data.simState.perspective === 'real' && data.simState.scenarioId) {
+                            selectRealScenario(data.simState.scenarioId);
+                        }
                         inputs.frequency.value = data.simState.f;
                         inputs.sourceVelocity.value = data.simState.vS;
                         inputs.receiverVelocity.value = data.simState.vR;
@@ -909,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // A. SINCRONIZACIÓN DE RÚBRICA Y CUADERNILLO (DESCARGA PARA TODOS)
+            // A. SINCRONIZACIÓN DE RÚBRICA Y CUADERNILLO
             const btnRubrica = document.getElementById('btnDownloadRubrica');
             const btnCuadernillo = document.getElementById('btnDownloadCuadernillo');
 
@@ -941,7 +1372,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // SUBIDA DE RÚBRICA / CUADERNILLO (EXCLUSIVO DOCENTE)
             const uploadMaterialBtn = document.getElementById('uploadMaterialBtn');
             uploadMaterialBtn.onclick = async () => {
                 if (currentUserRole !== 'docente') return;
@@ -1146,7 +1576,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key === 'Enter') enviarMensaje();
             };
 
-            // C. GESTIÓN DE TAREAS, CALIFICACIONES, ELIMINACIÓN SINCRONIZADA Y ENVÍO AL CHAT
+            // C. GESTIÓN DE TAREAS, CALIFICACIONES Y ELIMINACIÓN SINCRONIZADA
             const fileInput = document.getElementById('fileInput');
             const fileUrlInput = document.getElementById('fileUrlInput');
             const uploadFileBtn = document.getElementById('uploadFileBtn');
@@ -1387,6 +1817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // INICIALIZACIÓN
+    initRealScenariosUI();
     resizeCanvas();
     initCharts();
     calculatePhysics();
