@@ -352,31 +352,41 @@ select, input[type="text"], input[type="number"] {
     gap: 6px;
 }
 
+#modePhysicsBtn,
+#modeRealBtn,
 .perspective-tab {
-    background: transparent;
-    border: 1px solid transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--surface-1);
+    border: 1px solid var(--line);
     color: var(--muted);
-    font-family: inherit;
+    font-family: 'DM Sans', system-ui, sans-serif;
     font-size: 12px;
     font-weight: 600;
-    padding: 8px 14px;
-    border-radius: 7px;
+    padding: 8px 16px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
 }
 
+#modePhysicsBtn:hover,
+#modeRealBtn:hover,
 .perspective-tab:hover {
     color: var(--text);
-    background: color-mix(in srgb, var(--surface-1) 60%, transparent);
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, var(--surface-1));
 }
 
+#modePhysicsBtn.active,
+#modeRealBtn.active,
 .perspective-tab.active {
     background: var(--primary);
+    border-color: var(--primary);
     color: #071318;
-    box-shadow: 0 2px 10px color-mix(in srgb, var(--primary) 35%, transparent);
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 .scenario-badge {
@@ -424,6 +434,8 @@ select, input[type="text"], input[type="number"] {
 }
 
 .real-sc-btn {
+    appearance: none;
+    -webkit-appearance: none;
     background: var(--surface-2);
     border: 1px solid var(--line);
     border-radius: 9px;
