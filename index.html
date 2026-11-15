@@ -58,7 +58,7 @@
         <div>
             <span class="tag">SIMULACIÓN EN TIEMPO REAL</span>
             <h2>Observa cómo cambia el sonido cuando hay movimiento relativo.</h2>
-            <p>Modifica las condiciones de la fuente y del receptor. Los resultados, las gráficas y los procedimientos se actualizan automáticamente.</p>
+            <p>Alterna entre el modelo físico puro y escenarios de la vida real. Los resultados, las gráficas y los procedimientos se actualizan automáticamente.</p>
         </div>
         <div class="sound-icon">)))</div>
     </section>
@@ -114,8 +114,8 @@
                     <label for="sourceVelocity">Velocidad de la fuente (vₛ)</label>
                     <output id="sourceVelocityOut">20 m/s</output>
                 </div>
-                <input type="range" id="sourceVelocity" min="-250" max="250" step="1" value="20">
-                <div class="range-labels"><span>−250 m/s</span><span>+250 m/s</span></div>
+                <input type="range" id="sourceVelocity" min="-420" max="420" step="1" value="20">
+                <div class="range-labels"><span>−420 m/s</span><span>+420 m/s</span></div>
             </div>
 
             <div class="control-group">
@@ -138,10 +138,10 @@
 
             <div class="control-group">
                 <div class="control-title">
-                    <label for="amplitude">Intensidad visual</label>
-                    <output id="amplitudeOut">1.0</output>
+                    <label for="amplitude">Intensidad y brillo de ondas</label>
+                    <output id="amplitudeOut">1.6</output>
                 </div>
-                <input type="range" id="amplitude" min="0.4" max="2" step="0.1" value="1">
+                <input type="range" id="amplitude" min="0.6" max="2.5" step="0.1" value="1.6">
             </div>
 
             <div class="control-group">
@@ -155,9 +155,9 @@
             <div class="control-group">
                 <div class="control-title">
                     <label for="waveSpacing">Densidad de frentes</label>
-                    <output id="waveSpacingOut">1.0×</output>
+                    <output id="waveSpacingOut">1.2×</output>
                 </div>
-                <input type="range" id="waveSpacing" min="0.5" max="2" step="0.1" value="1">
+                <input type="range" id="waveSpacing" min="0.5" max="2" step="0.1" value="1.2">
             </div>
 
             <div class="control-group">
@@ -238,6 +238,7 @@
                 </div>
             </section>
             
+            <!-- PANEL DE SIMULACIÓN CON SELECTOR DE PERSPECTIVA Y ESCENARIOS -->
             <section class="panel simulation-panel">
                 <div class="section-heading">
                     <div>
@@ -251,10 +252,36 @@
                     </div>
                 </div>
 
+                <!-- NUEVO: SELECTOR DE PERSPECTIVA (FÍSICA VS VIDA REAL) -->
+                <div class="perspective-bar">
+                    <div class="perspective-tabs" role="tablist">
+                        <button type="button" class="persp-btn active" id="modePhysicsBtn" data-perspective="physics">
+                            🔬 Perspectiva desde la Física
+                        </button>
+                        <button type="button" class="persp-btn" id="modeRealBtn" data-perspective="real">
+                            🌍 Escenarios de la Vida Real (12)
+                        </button>
+                    </div>
+                    <span class="persp-badge" id="activeScenarioBadge">Vista esquemática de laboratorio</span>
+                </div>
+
+                <!-- NUEVO: SELECTOR DE 12 ESCENARIOS DE LA VIDA REAL -->
+                <div id="realScenariosDrawer" class="scenarios-drawer" style="display: none;">
+                    <p id="scenarioContextText" class="scenario-context-text">
+                        🚑 <strong>Ambulancia en avenida:</strong> sirena a 660 Hz desplazándose a 32 m/s frente a un peatón.
+                    </p>
+                    <div id="realScenariosGrid" class="scenarios-grid"></div>
+                </div>
+
                 <div class="canvas-wrap">
                     <canvas id="waveCanvas"></canvas>
                     <div class="canvas-overlay">
-                        <span class="live-dot"></span> SIMULACIÓN ACTIVA
+                        <span class="live-dot"></span> <span id="canvasModeOverlay">SIMULACIÓN ACTIVA · FÍSICA</span>
+                    </div>
+                    <!-- Leyenda de color de ondas -->
+                    <div class="wave-color-legend">
+                        <span><i class="dot-comp"></i> Compresión (λ' menor · agudo)</span>
+                        <span><i class="dot-exp"></i> Expansión (λ'' mayor · grave)</span>
                     </div>
                 </div>
 
