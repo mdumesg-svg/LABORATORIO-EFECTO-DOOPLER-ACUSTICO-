@@ -331,6 +331,7 @@ select, input[type="text"], input[type="number"] {
    ============================================================ */
 .perspective-panel {
     padding: 16px 20px;
+    width: 100%;
 }
 
 .perspective-header {
@@ -343,16 +344,17 @@ select, input[type="text"], input[type="number"] {
 
 .perspective-tabs {
     display: inline-flex;
+    flex-wrap: wrap;
     background: var(--surface-2);
     border: 1px solid var(--line);
     border-radius: 10px;
     padding: 4px;
-    gap: 4px;
+    gap: 6px;
 }
 
 .perspective-tab {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: var(--muted);
     font-family: inherit;
     font-size: 12px;
@@ -368,6 +370,7 @@ select, input[type="text"], input[type="number"] {
 
 .perspective-tab:hover {
     color: var(--text);
+    background: color-mix(in srgb, var(--surface-1) 60%, transparent);
 }
 
 .perspective-tab.active {
@@ -390,6 +393,7 @@ select, input[type="text"], input[type="number"] {
     margin-top: 14px;
     padding-top: 14px;
     border-top: 1px solid var(--line);
+    width: 100%;
     animation: fadeDrawer 0.22s ease-out;
 }
 
@@ -398,10 +402,25 @@ select, input[type="text"], input[type="number"] {
     to { opacity: 1; transform: translateY(0); }
 }
 
+.scenario-context-bar {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-left: 3px solid var(--primary);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.scenario-context-bar strong {
+    color: var(--text);
+}
+
 .real-scenarios-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+    gap: 10px;
+    width: 100%;
 }
 
 .real-sc-btn {
@@ -415,8 +434,11 @@ select, input[type="text"], input[type="number"] {
     cursor: pointer;
     transition: all 0.18s ease;
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 9px;
+    width: 100%;
+    min-width: 0;
 }
 
 .real-sc-btn:hover {
@@ -431,7 +453,7 @@ select, input[type="text"], input[type="number"] {
 }
 
 .real-sc-btn .sc-emoji {
-    font-size: 20px;
+    font-size: 21px;
     line-height: 1;
     flex-shrink: 0;
 }
@@ -440,6 +462,7 @@ select, input[type="text"], input[type="number"] {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1;
 }
 
 .real-sc-btn .sc-name {
@@ -454,20 +477,9 @@ select, input[type="text"], input[type="number"] {
     font-size: 10px;
     color: var(--muted);
     font-family: 'JetBrains Mono', monospace;
-}
-
-.scenario-context-bar {
-    margin-top: 12px;
-    padding: 10px 14px;
-    background: var(--surface-2);
-    border-left: 3px solid var(--primary);
-    border-radius: 6px;
-    font-size: 12px;
-    color: var(--muted);
-}
-
-.scenario-context-bar strong {
-    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* LEYENDA VISUAL DE ONDAS EN CANVAS */
