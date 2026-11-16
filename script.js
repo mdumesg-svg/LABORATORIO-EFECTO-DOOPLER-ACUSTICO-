@@ -286,7 +286,32 @@ document.addEventListener('DOMContentLoaded', () => {
         calculatePhysics();
     }
 
-    // 2. WEB AUDIO API (SONIDO REALISTA POR ESCENARIO + DOPPLER EN TIEMPO REAL)
+    // 2. WEB AUDIO API (SONIDO REALISTA + ATENUACIÓN POR DISTANCIA + DOPPLER EN TIEMPO REAL)
+    function getSpatialGainValue() {
+        const distancePx = Math.abs(state.srcX - state.recX);
+        const maxRefDistance = Math.max((canvas.width || 600) * 0.65, 250);
+        const normalizedDist = Math.min(1, distancePx / maxRefDistance);
+
+        const minGain = 0.015;
+        const maxGain = 0.25;
+        return minGain + (maxGain - minGain) * Math.pow(1 - normalizedDist, 2.2);
+    }
+
+    function updateSpatialAudio() {
+        if (!audioCtx || !isAudioPlaying || !masterGain) return;
+
+        const now = audioCtx.currentTime;
+        if (state.fObs <= 0) {
+            masterGain.gain.setTargetAtTime(0, now, 0.04);
+            return;
+        }
+
+        const isBat = state.perspective === 'real' && state.activeScenario.soundProfile === 'bat';
+        if (!isBat) {
+            masterGain.gain.setTargetAtTime(getSpatialGainValue(), now, 0.05);
+        }
+    }
+
     function initAudio() {
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -425,13 +450,14 @@ document.addEventListener('DOMContentLoaded', () => {
             filterNode.frequency.setTargetAtTime(950, now, 0.03);
         } else if (profile === 'bat') {
             mainOsc.type = 'sine';
+            const spatialScale = getSpatialGainValue() / 0.11;
             const isPulse = (soundStep % 4 === 0);
             if (isPulse) {
                 mainOsc.frequency.setValueAtTime(Math.min(3800, baseF * 1.35), now);
                 mainOsc.frequency.exponentialRampToValueAtTime(Math.max(250, baseF * 0.85), now + 0.09);
-                masterGain.gain.setTargetAtTime(0.11, now, 0.01);
+                masterGain.gain.setTargetAtTime(0.11 * spatialScale, now, 0.01);
             } else {
-                masterGain.gain.setTargetAtTime(0.012, now, 0.03);
+                masterGain.gain.setTargetAtTime(0.012 * spatialScale, now, 0.03);
             }
             subGain.gain.setTargetAtTime(0, now, 0.02);
             noiseGain.gain.setTargetAtTime(0, now, 0.02);
@@ -492,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isAudioPlaying = !isAudioPlaying;
 
         if (isAudioPlaying) {
-            masterGain.gain.setTargetAtTime(0.11, audioCtx.currentTime, 0.05);
+            updateSpatialAudio();
             updateSoundModulation();
             btn.innerHTML = '🔇 Silenciar';
             btn.classList.replace('btn-outline', 'btn-primary');
@@ -548,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.fObs <= 0) {
                 masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.04);
             } else {
-                masterGain.gain.setTargetAtTime(0.11, audioCtx.currentTime, 0.04);
+                updateSpatialAudio();
                 updateSoundModulation();
             }
         }
@@ -1245,6 +1271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             drawHighVisibilityWaves(cY);
             drawEntities(cY);
+            updateSpatialAudio();
         }
         requestAnimationFrame(draw);
     }
