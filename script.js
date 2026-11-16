@@ -4,6 +4,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 820;
+
     // CATÁLOGO DE 12 ESCENARIOS DE LA VIDA REAL
     // facesRightByDefault: true solo si el emoji nativo ya mira a la derecha
     const REAL_SCENARIOS = [
@@ -168,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let charts = {};
     let isApplyingRemoteSync = false;
+    let lastCanvasWidth = 0;
 
     const inputs = {
         frequency: document.getElementById('frequency'),
@@ -206,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const canvas = document.getElementById('waveCanvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
 
     // CONSTRUCCIÓN DE BOTONES DE ESCENARIOS DE LA VIDA REAL
     function initRealScenariosUI() {
@@ -356,7 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
             filterNode.frequency.setTargetAtTime(4000, now, 0.05);
             mainOsc.frequency.setTargetAtTime(baseF, now, 0.05);
         } else if (profile === 'ambulance') {
-            // Sirena europea bitonal (Hi-Lo cada ~550ms)
             mainOsc.type = 'triangle';
             subOsc.type = 'sine';
             const highTone = Math.floor(soundStep / 5) % 2 === 0;
@@ -368,7 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lfoGain.gain.setTargetAtTime(0, now, 0.04);
             filterNode.frequency.setTargetAtTime(2800, now, 0.05);
         } else if (profile === 'police') {
-            // Sirena policial continua (Wail ascendente y descendente)
             mainOsc.type = 'sawtooth';
             const sweep = Math.sin(soundStep * 0.28) * (baseF * 0.24);
             mainOsc.frequency.setTargetAtTime(baseF + sweep, now, 0.05);
@@ -377,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lfoGain.gain.setTargetAtTime(0, now, 0.04);
             filterNode.frequency.setTargetAtTime(2200, now, 0.05);
         } else if (profile === 'firetruck') {
-            // Bocina neumática bitonal grave de bomberos
             mainOsc.type = 'sawtooth';
             subOsc.type = 'square';
             const pulse = Math.floor(soundStep / 4) % 2 === 0;
@@ -387,7 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noiseGain.gain.setTargetAtTime(0.03, now, 0.04);
             filterNode.frequency.setTargetAtTime(1600, now, 0.05);
         } else if (profile === 'train') {
-            // Silbato ferroviario en acorde de quinta/tercera
             mainOsc.type = 'triangle';
             subOsc.type = 'sawtooth';
             mainOsc.frequency.setTargetAtTime(baseF, now, 0.05);
@@ -396,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noiseGain.gain.setTargetAtTime(0.05, now, 0.05);
             filterNode.frequency.setTargetAtTime(1900, now, 0.05);
         } else if (profile === 'f1' || profile === 'moto') {
-            // Rugido de motor de altas revoluciones con armónico + vibración
             mainOsc.type = 'sawtooth';
             subOsc.type = 'sawtooth';
             const rpmJitter = Math.sin(soundStep * 0.9) * (baseF * 0.02);
@@ -408,7 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lfoGain.gain.setTargetAtTime(14, now, 0.05);
             filterNode.frequency.setTargetAtTime(2500, now, 0.05);
         } else if (profile === 'jet') {
-            // Turbina jet con flujo aerodinámico intenso
             mainOsc.type = 'sawtooth';
             subOsc.type = 'sine';
             mainOsc.frequency.setTargetAtTime(Math.max(120, baseF * 0.6), now, 0.06);
@@ -418,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lfoGain.gain.setTargetAtTime(0, now, 0.04);
             filterNode.frequency.setTargetAtTime(1400, now, 0.05);
         } else if (profile === 'helicopter') {
-            // Batido rítmico "chop-chop" de aspas de rotor (~11 Hz)
             mainOsc.type = 'triangle';
             subOsc.type = 'sine';
             const chop = (soundStep % 2 === 0) ? 1.0 : 0.35;
@@ -428,7 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noiseGain.gain.setTargetAtTime(0.22 * chop, now, 0.02);
             filterNode.frequency.setTargetAtTime(950, now, 0.03);
         } else if (profile === 'bat') {
-            // Pulsos cortos de ecolocalización (chirrido descendente rápido)
             mainOsc.type = 'sine';
             const isPulse = (soundStep % 4 === 0);
             if (isPulse) {
@@ -442,7 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noiseGain.gain.setTargetAtTime(0, now, 0.02);
             filterNode.frequency.setTargetAtTime(4200, now, 0.03);
         } else if (profile === 'dolphin') {
-            // Silbidos y clics de sonar marino
             mainOsc.type = 'sine';
             subOsc.type = 'triangle';
             const chirp = Math.sin(soundStep * 0.65) * (baseF * 0.18);
@@ -452,7 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noiseGain.gain.setTargetAtTime(0.02, now, 0.04);
             filterNode.frequency.setTargetAtTime(3600, now, 0.05);
         } else if (profile === 'ship') {
-            // Sirena grave de niebla en puerto (profunda y resonante)
             mainOsc.type = 'sawtooth';
             subOsc.type = 'sine';
             mainOsc.frequency.setTargetAtTime(Math.max(75, baseF * 0.5), now, 0.08);
@@ -461,7 +454,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noiseGain.gain.setTargetAtTime(0.04, now, 0.06);
             filterNode.frequency.setTargetAtTime(750, now, 0.08);
         } else if (profile === 'car') {
-            // Claxon bitonal de automóvil (Fa + La)
             mainOsc.type = 'sawtooth';
             subOsc.type = 'sawtooth';
             mainOsc.frequency.setTargetAtTime(baseF, now, 0.04);
@@ -630,13 +622,18 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // 4. GRÁFICAS (5 PANELES)
+    // 4. GRÁFICAS (5 PANELES OPTIMIZADOS PARA MÓVIL Y ESCRITORIO)
     function initCharts() {
         Chart.defaults.color = '#91a2bd';
         Chart.defaults.font.family = "'DM Sans', sans-serif";
+        if (isMobileDevice) {
+            Chart.defaults.devicePixelRatio = 1;
+        }
+
         const opts = {
             responsive: true,
             maintainAspectRatio: false,
+            animation: isMobileDevice ? false : { duration: 250 },
             plugins: { legend: { display: false } },
             scales: {
                 x: { grid: { color: 'rgba(145,162,189,0.1)' } },
@@ -668,7 +665,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: ['Número de Mach', 'Margen subsónico'],
                 datasets: [{ data: [0, 1], backgroundColor: ['#ffb66b', '#243452'], borderWidth: 0 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                cutout: '72%',
+                plugins: { legend: { display: false } }
+            }
         });
 
         charts.time = new Chart(document.getElementById('chartTime'), {
@@ -693,33 +696,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         charts.source.data.labels = vData;
         charts.source.data.datasets[0].data = fData;
-        charts.source.update();
+        charts.source.update('none');
 
         charts.wavelength.data.datasets[0].data = [
             Math.max(0, (state.v - Math.abs(state.vS)) / state.f),
             (state.v + Math.abs(state.vS)) / state.f
         ];
-        charts.wavelength.update();
+        charts.wavelength.update('none');
 
         charts.compare.data.datasets[0].data = [state.f, state.fObs];
-        charts.compare.update();
+        charts.compare.update('none');
 
         const mach = Math.min(1, Math.abs(state.vS) / state.v);
         charts.speed.data.datasets[0].data = [mach, Math.max(0, 1 - mach)];
-        charts.speed.update();
+        charts.speed.update('none');
 
         if (!state.isPaused) {
             state.history.push(state.fObs);
             if (state.history.length > 25) state.history.shift();
             charts.time.data.datasets[0].data = state.history;
-            charts.time.update();
+            charts.time.update('none');
         }
     }
 
     // 5. ANIMACIÓN CANVAS CON ESCENARIOS ILUSTRADOS Y ORIENTACIÓN CORREGIDA
-    function resizeCanvas() {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight;
+    function resizeCanvas(force = false) {
+        const parent = canvas.parentElement;
+        if (!parent || parent.clientWidth === 0) return;
+
+        // Evita que Safari iOS borre el canvas por el cambio de altura de la barra URL al hacer scroll
+        if (!force && isMobileDevice && parent.clientWidth === lastCanvasWidth) {
+            return;
+        }
+        lastCanvasWidth = parent.clientWidth;
+
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
         state.srcX = canvas.width * 0.22;
         state.recX = canvas.width * 0.76;
     }
@@ -748,10 +760,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawHouse(x, groundY, w, h, wallColor, roofColor, isNight = false) {
-        // Fachada
         ctx.fillStyle = wallColor;
         ctx.fillRect(x, groundY - h, w, h);
-        // Techo triangular
         ctx.fillStyle = roofColor;
         ctx.beginPath();
         ctx.moveTo(x - 5, groundY - h);
@@ -759,7 +769,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineTo(x + w + 5, groundY - h);
         ctx.closePath();
         ctx.fill();
-        // Puerta y ventanas
         ctx.fillStyle = isNight ? 'rgba(250, 204, 21, 0.75)' : 'rgba(186, 230, 253, 0.55)';
         ctx.fillRect(x + 8, groundY - h + 10, 10, 10);
         ctx.fillRect(x + w - 18, groundY - h + 10, 10, 10);
@@ -778,6 +787,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawScenarioBackdrop(w, h, cY) {
         if (state.perspective === 'physics') {
+            const bgSurface = getComputedStyle(document.body).getPropertyValue('--surface-2').trim() || '#17233b';
+            ctx.fillStyle = bgSurface;
+            ctx.fillRect(0, 0, w, h);
+
             ctx.save();
             ctx.strokeStyle = 'rgba(145, 162, 189, 0.08)';
             ctx.lineWidth = 1;
@@ -802,6 +815,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const groundY = cY + 18;
         ctx.save();
 
+        // Fondo base opaco para evitar rastros al usar alpha: false
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, w, h);
+
         // 1. CIELO SEGÚN ESCENARIO
         const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
         if (env === 'city_night' || env === 'night_forest') {
@@ -817,19 +834,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, w, env === 'ocean' ? h : groundY);
 
-        // Nubes o estrellas/luna
         if (env === 'city_night' || env === 'night_forest') {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
             for (let i = 0; i < 24; i++) {
                 ctx.fillRect((i * 73) % w, (i * 31) % (groundY - 25), 2, 2);
             }
-            // Luna
             ctx.fillStyle = '#fef08a';
             ctx.beginPath();
             ctx.arc(w - 95, 42, 14, 0, Math.PI * 2);
             ctx.fill();
         } else if (env !== 'ocean') {
-            // Sol suave y nubes desplazándose
             ctx.fillStyle = 'rgba(253, 224, 71, 0.25)';
             ctx.beginPath();
             ctx.arc(90, 42, 22, 0, Math.PI * 2);
@@ -845,7 +859,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 2. DECORACIÓN DE CADA ESCENARIO
         if (env === 'suburb_road') {
-            // Casas y árboles a lo largo de la avenida (Ambulancia / Bomberos)
             const palette = [
                 ['#334155', '#b91c1c'],
                 ['#475569', '#d97706'],
@@ -860,7 +873,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 idx++;
             }
         } else if (env === 'city_night') {
-            // Edificios iluminados (Patrulla Policial)
             for (let x = 18; x < w - 40; x += 78) {
                 const bh = 52 + ((x * 17) % 55);
                 ctx.fillStyle = '#0f172a';
@@ -873,17 +885,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } else if (env === 'racetrack') {
-            // TARIMAS / GRADAS DE FÓRMULA 1 CON ESPECTADORES Y BANDERAS
             const standX = Math.max(260, state.recX - 95);
             const standW = 190;
             const standH = 58;
-            // Estructura metálica de la tarima
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(standX, groundY - standH, standW, standH);
-            // Techo de tribuna
             ctx.fillStyle = '#dc2626';
             ctx.fillRect(standX - 8, groundY - standH - 8, standW + 16, 8);
-            // Escalones de las gradas y público
             const crowdColors = ['#38bdf8', '#facc15', '#f43f5e', '#4ade80', '#a78bfa'];
             for (let row = 0; row < 3; row++) {
                 const ry = groundY - 14 - row * 14;
@@ -896,19 +904,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     ctx.fill();
                 }
             }
-            // Valla publicitaria lateral
             ctx.fillStyle = '#0f172a';
             ctx.fillRect(24, groundY - 22, 160, 22);
             ctx.fillStyle = '#ef4444';
             ctx.fillRect(24, groundY - 22, 160, 5);
         } else if (env === 'railway') {
-            // Estación ferroviaria y andén techado
             const platX = Math.max(240, state.recX - 85);
             ctx.fillStyle = '#334155';
             ctx.fillRect(platX, groundY - 46, 170, 6);
             ctx.fillRect(platX + 25, groundY - 40, 5, 40);
             ctx.fillRect(platX + 140, groundY - 40, 5, 40);
-            // Semáforo ferroviario
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(110, groundY - 48, 6, 48);
             ctx.fillStyle = '#22c55e';
@@ -916,7 +921,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.arc(113, groundY - 42, 4, 0, Math.PI * 2);
             ctx.fill();
         } else if (env === 'highway' || env === 'valley_sky') {
-            // Montañas al fondo y árboles (Motocicleta, Cruce de Autos, Helicóptero)
             ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
             ctx.beginPath();
             ctx.moveTo(0, groundY);
@@ -933,7 +937,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 drawTree(x, groundY, 0.9);
             }
         } else if (env === 'night_forest') {
-            // Siluetas de pinos nocturnos (Murciélago)
             for (let x = 20; x < w; x += 55) {
                 const th = 55 + (x % 35);
                 ctx.fillStyle = '#062c1e';
@@ -945,7 +948,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.fill();
             }
         } else if (env === 'ocean') {
-            // Rayos de luz submarina, algas y burbujas (Delfín)
             ctx.fillStyle = 'rgba(56, 189, 248, 0.07)';
             for (let i = 0; i < 5; i++) {
                 ctx.beginPath();
@@ -956,7 +958,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.closePath();
                 ctx.fill();
             }
-            // Burbujas ascendentes
             ctx.strokeStyle = 'rgba(186, 230, 253, 0.35)';
             ctx.lineWidth = 1.2;
             for (let i = 0; i < 12; i++) {
@@ -967,11 +968,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.stroke();
             }
         } else if (env === 'harbor') {
-            // Faro en el muelle (Buque en Puerto)
             const pierX = w - 165;
             ctx.fillStyle = '#475569';
             ctx.fillRect(pierX, groundY - 8, 165, 16);
-            // Torre del faro
             ctx.fillStyle = '#f8fafc';
             ctx.fillRect(w - 52, groundY - 56, 16, 48);
             ctx.fillStyle = '#ef4444';
@@ -982,9 +981,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fill();
         }
 
-        // 3. SUPERFICIE DE DESPLAZAMIENTO (CARRETERA, PISTA F1, VÍA FÉRREA O MAR)
+        // 3. SUPERFICIE DE DESPLAZAMIENTO
         if (env === 'racetrack') {
-            // Asfalto de circuito F1 + pianitos rojo/blanco
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(0, groundY, w, h - groundY);
             for (let x = 0; x < w; x += 28) {
@@ -1010,7 +1008,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = '#0369a1';
             ctx.fillRect(0, groundY + 4, w, h - groundY);
         } else if (env === 'suburb_road' || env === 'city_night' || env === 'highway' || env === 'valley_sky') {
-            // Carretera asfaltada con acera y línea amarilla discontinua
             ctx.fillStyle = '#64748b';
             ctx.fillRect(0, groundY - 3, w, 5);
             ctx.fillStyle = '#1e293b';
@@ -1032,7 +1029,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!toggles.waves.checked) return;
 
         ctx.save();
-        const glowStrength = Math.min(24, 10 * state.amplitude);
+        const glowStrength = isMobileDevice ? 0 : Math.min(24, 10 * state.amplitude);
 
         for (let i = state.waves.length - 1; i >= 0; i--) {
             const w = state.waves[i];
@@ -1045,18 +1042,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const alpha = Math.max(0, w.alpha);
 
-            const radGrad = ctx.createRadialGradient(
-                w.x, w.y, Math.max(0, w.radius - 10),
-                w.x, w.y, w.radius + 3
-            );
-            radGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
-            radGrad.addColorStop(0.75, `rgba(0, 240, 255, ${alpha * 0.14})`);
-            radGrad.addColorStop(1, `rgba(167, 139, 250, ${alpha * 0.22})`);
+            if (!isMobileDevice) {
+                const radGrad = ctx.createRadialGradient(
+                    w.x, w.y, Math.max(0, w.radius - 10),
+                    w.x, w.y, w.radius + 3
+                );
+                radGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
+                radGrad.addColorStop(0.75, `rgba(0, 240, 255, ${alpha * 0.14})`);
+                radGrad.addColorStop(1, `rgba(167, 139, 250, ${alpha * 0.22})`);
 
-            ctx.fillStyle = radGrad;
-            ctx.beginPath();
-            ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
-            ctx.fill();
+                ctx.fillStyle = radGrad;
+                ctx.beginPath();
+                ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             ctx.lineWidth = 2.1 * state.amplitude;
             ctx.shadowBlur = glowStrength;
@@ -1064,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.strokeStyle = state.vS > 0
                 ? `rgba(0, 240, 255, ${Math.min(1, alpha * 0.95)})`
                 : `rgba(167, 139, 250, ${Math.min(1, alpha * 0.9)})`;
-            ctx.shadowColor = state.vS > 0 ? '#00f0ff' : '#a78bfa';
+            if (!isMobileDevice) ctx.shadowColor = state.vS > 0 ? '#00f0ff' : '#a78bfa';
             ctx.beginPath();
             ctx.arc(w.x, w.y, w.radius, -Math.PI / 2, Math.PI / 2);
             ctx.stroke();
@@ -1072,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.strokeStyle = state.vS < 0
                 ? `rgba(0, 240, 255, ${Math.min(1, alpha * 0.95)})`
                 : `rgba(167, 139, 250, ${Math.min(1, alpha * 0.9)})`;
-            ctx.shadowColor = state.vS < 0 ? '#00f0ff' : '#a78bfa';
+            if (!isMobileDevice) ctx.shadowColor = state.vS < 0 ? '#00f0ff' : '#a78bfa';
             ctx.beginPath();
             ctx.arc(w.x, w.y, w.radius, Math.PI / 2, (3 * Math.PI) / 2);
             ctx.stroke();
@@ -1085,8 +1084,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const dir = state.vS >= 0 ? -1 : 1;
 
             ctx.strokeStyle = '#f43f5e';
-            ctx.shadowColor = '#f43f5e';
-            ctx.shadowBlur = 16;
+            if (!isMobileDevice) {
+                ctx.shadowColor = '#f43f5e';
+                ctx.shadowBlur = 16;
+            }
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.moveTo(state.srcX + dir * coneLen * Math.cos(theta), cY - coneLen * Math.sin(theta));
@@ -1099,7 +1100,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawEntities(cY) {
-        // RECEPTOR (Si es F1, lo subimos a las tarimas)
         if (toggles.receiver.checked) {
             const isF1Stand = state.perspective === 'real' && state.activeScenario.env === 'racetrack';
             const recY = isF1Stand ? cY - 26 : cY;
@@ -1109,8 +1109,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.beginPath();
                 ctx.arc(state.recX, recY, 10, 0, Math.PI * 2);
                 ctx.fillStyle = '#72a9ff';
-                ctx.shadowColor = '#72a9ff';
-                ctx.shadowBlur = 12;
+                if (!isMobileDevice) {
+                    ctx.shadowColor = '#72a9ff';
+                    ctx.shadowBlur = 12;
+                }
                 ctx.fill();
                 ctx.restore();
             } else {
@@ -1126,7 +1128,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 ctx.save();
                 ctx.translate(state.recX, recY);
-                // Si el receptor es un vehículo/ciclista que viene hacia la izquierda (vR < 0), ya mira a la izquierda
                 if (state.vR > 0 && (state.activeScenario.receiverType === 'cyclist' || state.activeScenario.receiverType === 'car_receiver')) {
                     ctx.scale(-1, 1);
                 }
@@ -1152,23 +1153,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // FUENTE SONORA (Con orientación corregida según dirección del movimiento)
         if (state.perspective === 'physics') {
             ctx.save();
             ctx.beginPath();
             ctx.arc(state.srcX, cY, 10, 0, Math.PI * 2);
             ctx.fillStyle = '#ffb66b';
-            ctx.shadowColor = '#ffb66b';
-            ctx.shadowBlur = 14;
+            if (!isMobileDevice) {
+                ctx.shadowColor = '#ffb66b';
+                ctx.shadowBlur = 14;
+            }
             ctx.fill();
             ctx.restore();
         } else {
             ctx.save();
             ctx.translate(state.srcX, cY);
 
-            // Corrección de orientación:
-            // Los emojis de vehículos/animales miran a la izquierda por defecto (facesRightByDefault = false).
-            // Si van hacia la derecha (vS >= 0), los volteamos con scale(-1, 1) para que miren hacia adelante.
             const movingRight = state.vS >= 0;
             const shouldFlip = state.activeScenario.facesRightByDefault ? !movingRight : movingRight;
             if (shouldFlip) {
@@ -1180,13 +1179,14 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.textBaseline = 'middle';
             ctx.fillText(state.activeScenario.emoji, 0, 0);
 
-            // Luz estroboscópica para emergencias (Ambulancia, Patrulla, Bomberos)
             const sType = state.activeScenario.sourceType;
             if (sType === 'ambulance' || sType === 'police' || sType === 'firetruck') {
                 const flash = Math.sin(state.time * 0.35) > 0;
                 ctx.fillStyle = flash ? '#ef4444' : '#3b82f6';
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.shadowBlur = 16;
+                if (!isMobileDevice) {
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = 16;
+                }
                 ctx.beginPath();
                 ctx.arc(0, -16, 4.5, 0, Math.PI * 2);
                 ctx.fill();
@@ -1213,7 +1213,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function draw() {
         if (!state.isPaused) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
             const cY = canvas.height / 2 + 12;
 
             drawScenarioBackdrop(canvas.width, canvas.height, cY);
@@ -1268,7 +1267,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputs.themeSelect.addEventListener('change', (e) => {
         document.body.setAttribute('data-theme', e.target.value);
         Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted');
-        Object.values(charts).forEach(c => c.update());
+        Object.values(charts).forEach(c => c.update('none'));
     });
 
     document.getElementById('toggleAudioBtn').addEventListener('click', (e) => toggleAudio(e.target));
@@ -1278,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('restartAnimationBtn').addEventListener('click', () => {
         state.waves = [];
-        resizeCanvas();
+        resizeCanvas(true);
     });
     document.getElementById('resetBtn').addEventListener('click', () => {
         inputs.frequency.value = 440;
@@ -1333,7 +1332,7 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
     });
 
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', () => resizeCanvas(false));
 
     // ==========================================
     // 7. FIREBASE: ROLES, CLASE EN VIVO, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES
@@ -2219,11 +2218,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // INICIALIZACIÓN
     initRealScenariosUI();
-    resizeCanvas();
+    resizeCanvas(true);
     initCharts();
     calculatePhysics();
     requestAnimationFrame(draw);
     setInterval(() => {
         if (!state.isPaused) updateCharts();
-    }, 1000);
+    }, isMobileDevice ? 4000 : 1000);
 });
