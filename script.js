@@ -1,13 +1,59 @@
 /**
- * SIMULADOR DE EFECTO DOPPLER ACÚSTICO Y AULA VIRTUAL SINCRÓNICA (LMS)
- * UNEMI - Laboratorio Virtual de Física y Análisis Matemático (Plan Gratuito Spark)
+ * SIMULADOR DE EFECTO DOPPLER ACÚSTICO, INTEGRACIÓN NUMÉRICA Y AULA VIRTUAL (LMS)
+ * UNEMI - Laboratorio Virtual de Física y Análisis Matemático
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 820;
 
-    // CATÁLOGO DE 12 ESCENARIOS DE LA VIDA REAL
-    // facesRightByDefault: true solo si el emoji nativo ya mira a la derecha
+    // =========================================================================
+    // 0. CONMUTADOR DE MÓDULOS (FÍSICA VS ANÁLISIS MATEMÁTICO)
+    // =========================================================================
+    const navDopplerBtn = document.getElementById('navDopplerBtn');
+    const navMathBtn = document.getElementById('navMathBtn');
+    const dopplerModuleView = document.getElementById('dopplerModuleView');
+    const mathModuleView = document.getElementById('mathModuleView');
+    const brandMark = document.getElementById('brandMark');
+    const brandEyebrow = document.getElementById('brandEyebrow');
+    const brandTitle = document.getElementById('brandTitle');
+
+    function switchMainModule(moduleName) {
+        const isMath = moduleName === 'math';
+
+        if (navDopplerBtn) navDopplerBtn.classList.toggle('active', !isMath);
+        if (navMathBtn) navMathBtn.classList.toggle('active', isMath);
+
+        if (dopplerModuleView) dopplerModuleView.style.display = isMath ? 'none' : '';
+        if (mathModuleView) mathModuleView.style.display = isMath ? '' : 'none';
+
+        if (isMath) {
+            if (brandMark) brandMark.textContent = '∫';
+            if (brandEyebrow) brandEyebrow.textContent = 'ANÁLISIS MATEMÁTICO · UNIDAD 3 Y 4';
+            if (brandTitle) brandTitle.innerHTML = 'Integración <span>numérica</span>';
+            // Redibujar canvas matemático ahora que es visible
+            requestAnimationFrame(() => {
+                if (typeof runNumericalIntegration === 'function') {
+                    runNumericalIntegration();
+                }
+            });
+        } else {
+            if (brandMark) brandMark.textContent = '∿';
+            if (brandEyebrow) brandEyebrow.textContent = 'LABORATORIO VIRTUAL DE CIENCIAS';
+            if (brandTitle) brandTitle.innerHTML = 'Efecto Doppler <span>acústico</span>';
+            resizeCanvas(true);
+        }
+    }
+
+    if (navDopplerBtn) {
+        navDopplerBtn.addEventListener('click', () => switchMainModule('doppler'));
+    }
+    if (navMathBtn) {
+        navMathBtn.addEventListener('click', () => switchMainModule('math'));
+    }
+
+    // =========================================================================
+    // 1. CATÁLOGO DE 12 ESCENARIOS DE LA VIDA REAL (DOPPLER)
+    // =========================================================================
     const REAL_SCENARIOS = [
         {
             id: 'ambulance',
@@ -131,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     ];
 
-    // 1. ESTADO GLOBAL (FÍSICA + INTEGRACIÓN NUMÉRICA)
+    // ESTADO GLOBAL DOPPLER
     const state = {
         f: 440,
         vS: 20,
@@ -149,16 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
         srcX: 0,
         recX: 0,
         history: [],
-        perspective: 'physics', // 'physics' | 'real'
-        activeScenario: REAL_SCENARIOS[0],
-        // Parámetros de Integración Numérica (Simpson 1/3 Compuesto)
-        numIntervalT: 6.0,     // Ventana temporal [0, T_int] en segundos
-        numSubintervals: 12,   // Número par n de subintervalos
-        numDistInit: 120,      // Distancia perpendicular mínima d0 (m)
-        numAvgFreq: 440,       // Frecuencia promedio integrada
-        numIntegralVal: 0,     // Valor de la integral de f'(t) dt
-        numTrapVal: 0,         // Valor por Trapecio compuesto (para estimar error)
-        numSamples: []         // Puntos evaluados (t_i, f'(t_i))
+        perspective: 'physics',
+        activeScenario: REAL_SCENARIOS[0]
     };
 
     // MOTOR ACÚSTICO MULTIPERFIL (WEB AUDIO API)
@@ -189,11 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         waveScale: document.getElementById('waveScale'),
         waveSpacing: document.getElementById('waveSpacing'),
         directionMode: document.getElementById('directionMode'),
-        themeSelect: document.getElementById('themeSelect'),
-        // Inputs opcionales del módulo de Integración Numérica
-        numTimeWindow: document.getElementById('numTimeWindow'),
-        numSubintervals: document.getElementById('numSubintervals'),
-        numPerpDist: document.getElementById('numPerpDist')
+        themeSelect: document.getElementById('themeSelect')
     };
 
     const outputs = {
@@ -209,14 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         observedFreq: document.getElementById('observedFrequencyValue'),
         freqState: document.getElementById('frequencyState'),
         emittedWave: document.getElementById('emittedWavelengthValue'),
-        freqDelta: document.getElementById('frequencyDeltaValue'),
-        // Outputs opcionales del módulo de Integración Numérica
-        numTimeWindowOut: document.getElementById('numTimeWindowOut'),
-        numSubintervalsOut: document.getElementById('numSubintervalsOut'),
-        numPerpDistOut: document.getElementById('numPerpDistOut'),
-        numIntegralOut: document.getElementById('numIntegralOut'),
-        numAvgFreqOut: document.getElementById('numAvgFreqOut'),
-        numErrorOut: document.getElementById('numErrorOut')
+        freqDelta: document.getElementById('frequencyDeltaValue')
     };
 
     const toggles = {
@@ -230,7 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('waveCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
 
-    // CONSTRUCCIÓN DE BOTONES DE ESCENARIOS DE LA VIDA REAL
     function initRealScenariosUI() {
         const grid = document.getElementById('realScenariosGrid');
         if (!grid) return;
@@ -305,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
         calculatePhysics();
     }
 
-    // 2. WEB AUDIO API (SONIDO REALISTA + ATENUACIÓN POR DISTANCIA + DOPPLER EN TIEMPO REAL)
+    // 2. WEB AUDIO API (SONIDO REALISTA + ATENUACIÓN POR DISTANCIA)
     function getSpatialGainValue() {
         const distancePx = Math.abs(state.srcX - state.recX);
         const maxRefDistance = Math.max((canvas.width || 600) * 0.65, 250);
@@ -354,7 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
             noiseGain.gain.value = 0;
             lfoGain.gain.value = 0;
 
-            // Generador de ruido blanco suave para viento/turbina/rotores
             const bufferSize = audioCtx.sampleRate * 2;
             const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = noiseBuffer.getChannelData(0);
@@ -547,90 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. MOTOR FÍSICO, INTEGRACIÓN NUMÉRICA (SIMPSON 1/3) Y CÁLCULO DE FÓRMULAS
-    function computeNumericalIntegration() {
-        const T_win = inputs.numTimeWindow ? parseFloat(inputs.numTimeWindow.value) : state.numIntervalT;
-        let n = inputs.numSubintervals ? parseInt(inputs.numSubintervals.value, 10) : state.numSubintervals;
-        const d0 = inputs.numPerpDist ? parseFloat(inputs.numPerpDist.value) : state.numDistInit;
-
-        // Simpson 1/3 compuesto exige que n sea un entero par >= 2
-        if (isNaN(n) || n < 2) n = 2;
-        if (n % 2 !== 0) n += 1;
-
-        state.numIntervalT = T_win;
-        state.numSubintervals = n;
-        state.numDistInit = d0;
-
-        const vRel = state.vS - state.vR;
-        // Posición longitudinal inicial centrada en el paso más cercano (t = T_win / 2)
-        const x0 = -vRel * (T_win / 2);
-        const h = T_win / n;
-
-        const samples = [];
-        let sumSimpson = 0;
-        let sumTrap = 0;
-
-        for (let i = 0; i <= n; i++) {
-            const t = i * h;
-            const x = x0 + vRel * t;
-            const r = Math.hypot(x, d0);
-            // Velocidad radial proyectada sobre la línea fuente-receptor
-            const vRadialS = r > 1e-6 ? state.vS * (-x / r) : state.vS;
-            const vRadialR = r > 1e-6 ? state.vR * (-x / r) : state.vR;
-
-            let denom = state.v - vRadialS;
-            if (Math.abs(denom) < 0.1) denom = 0.1;
-            const fInstant = Math.abs(state.vS) >= state.v
-                ? 0
-                : Math.max(0, state.f * ((state.v - vRadialR) / denom));
-
-            samples.push({ i, t, x, r, fInstant });
-
-            const wSimpson = (i === 0 || i === n) ? 1 : (i % 2 === 1 ? 4 : 2);
-            const wTrap = (i === 0 || i === n) ? 1 : 2;
-            sumSimpson += wSimpson * fInstant;
-            sumTrap += wTrap * fInstant;
-        }
-
-        const integralSimpson = (h / 3) * sumSimpson;
-        const integralTrap = (h / 2) * sumTrap;
-        const avgFreq = T_win > 0 ? integralSimpson / T_win : state.fObs;
-        const truncError = Math.abs(integralSimpson - integralTrap);
-
-        state.numSamples = samples;
-        state.numIntegralVal = integralSimpson;
-        state.numTrapVal = integralTrap;
-        state.numAvgFreq = avgFreq;
-
-        // Actualizar UI si existen los elementos del módulo numérico
-        if (outputs.numTimeWindowOut) outputs.numTimeWindowOut.textContent = `${T_win.toFixed(1)} s`;
-        if (outputs.numSubintervalsOut) outputs.numSubintervalsOut.textContent = `${n} (h = ${h.toFixed(3)} s)`;
-        if (outputs.numPerpDistOut) outputs.numPerpDistOut.textContent = `${d0.toFixed(0)} m`;
-        if (outputs.numIntegralOut) outputs.numIntegralOut.innerHTML = `${integralSimpson.toFixed(1)} <small>ciclos</small>`;
-        if (outputs.numAvgFreqOut) outputs.numAvgFreqOut.innerHTML = `${avgFreq.toFixed(2)} <small>Hz</small>`;
-        if (outputs.numErrorOut) outputs.numErrorOut.innerHTML = `${truncError.toExponential(2)} <small>ciclos</small>`;
-
-        const numProcEl = document.getElementById('proc-numerical');
-        if (numProcEl) {
-            numProcEl.innerHTML =
-                `Método: <strong>Simpson 1/3 Compuesto</strong> en [0, ${T_win.toFixed(1)} s] con n = ${n}, h = ${h.toFixed(3)} s<br>` +
-                `∫ f′(t) dt ≈ (h/3)[f′(t₀) + 4∑f′(t₂ₖ₋₁) + 2∑f′(t₂ₖ) + f′(tₙ)] = <strong>${integralSimpson.toFixed(2)} ciclos</strong><br>` +
-                `Frecuencia media percibida: f̄′ = (1/${T_win.toFixed(1)}) ∫ f′(t) dt = <strong>${avgFreq.toFixed(2)} Hz</strong> (Diferencia vs Trapecio: ${truncError.toExponential(2)})`;
-        }
-
-        const numTableBody = document.getElementById('numericalTableBody');
-        if (numTableBody) {
-            numTableBody.innerHTML = samples.map(s => `
-                <tr>
-                    <td>${s.i}</td>
-                    <td>${s.t.toFixed(2)} s</td>
-                    <td>${s.x.toFixed(1)} m</td>
-                    <td>${s.fInstant.toFixed(2)} Hz</td>
-                </tr>
-            `).join('');
-        }
-    }
-
+    // 3. MOTOR FÍSICO Y CÁLCULO DE FÓRMULAS DOPPLER
     function calculatePhysics() {
         state.f = parseFloat(inputs.frequency.value);
         state.vS = parseFloat(inputs.sourceVelocity.value);
@@ -707,7 +649,6 @@ document.addEventListener('DOMContentLoaded', () => {
         outputs.emittedWave.innerHTML = `${state.lambda.toFixed(3)} <small>m</small>`;
         outputs.freqDelta.innerHTML = `${delta > 0 ? '+' : ''}${delta.toFixed(1)} <small>%</small>`;
 
-        computeNumericalIntegration();
         updateFormulas(delta, num, denom, isUnderwater);
         updateDataTable();
         updateCharts();
@@ -747,12 +688,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <tr><td>Velocidad de la fuente</td><td>vₛ</td><td>${state.vS}</td><td>m/s</td></tr>
             <tr><td>Velocidad del receptor</td><td>vᵣ</td><td>${state.vR}</td><td>m/s</td></tr>
             <tr><td>Longitud de onda emitida</td><td>λ</td><td>${state.lambda.toFixed(3)}</td><td>m</td></tr>
-            <tr><td>Frecuencia media integrada (Simpson 1/3)</td><td>f̄′</td><td>${state.numAvgFreq.toFixed(2)}</td><td>Hz</td></tr>
         `;
     }
 
-    // 4. GRÁFICAS (5 PANELES + GRÁFICA DE INTEGRACIÓN NUMÉRICA OPCIONAL)
+    // 4. GRÁFICAS (5 PANELES DOPPLER)
     function initCharts() {
+        if (typeof Chart === 'undefined') return;
         Chart.defaults.color = '#91a2bd';
         Chart.defaults.font.family = "'DM Sans', sans-serif";
         if (isMobileDevice) {
@@ -811,39 +752,6 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             options: { ...opts, animation: false, scales: { y: { min: 0 } } }
         });
-
-        const numCanvas = document.getElementById('chartNumerical');
-        if (numCanvas) {
-            charts.numerical = new Chart(numCanvas, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'f′(t) Instantánea (Hz)',
-                            data: [],
-                            borderColor: '#63d7c6',
-                            backgroundColor: 'rgba(99, 215, 198, 0.16)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 3
-                        },
-                        {
-                            label: 'f̄′ Media Simpson (Hz)',
-                            data: [],
-                            borderColor: '#ffb66b',
-                            borderDash: [6, 4],
-                            pointRadius: 0,
-                            tension: 0
-                        }
-                    ]
-                },
-                options: {
-                    ...opts,
-                    plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } } }
-                }
-            });
-        }
     }
 
     function updateCharts() {
@@ -873,13 +781,6 @@ document.addEventListener('DOMContentLoaded', () => {
         charts.speed.data.datasets[0].data = [mach, Math.max(0, 1 - mach)];
         charts.speed.update('none');
 
-        if (charts.numerical && state.numSamples.length > 0) {
-            charts.numerical.data.labels = state.numSamples.map(s => `${s.t.toFixed(1)}s`);
-            charts.numerical.data.datasets[0].data = state.numSamples.map(s => s.fInstant);
-            charts.numerical.data.datasets[1].data = state.numSamples.map(() => state.numAvgFreq);
-            charts.numerical.update('none');
-        }
-
         if (!state.isPaused) {
             state.history.push(state.fObs);
             if (state.history.length > 25) state.history.shift();
@@ -888,7 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. ANIMACIÓN CANVAS CON ESCENARIOS ILUSTRADOS Y ORIENTACIÓN CORREGIDA
+    // 5. ANIMACIÓN CANVAS DOPPLER
     function resizeCanvas(force = false) {
         const parent = canvas.parentElement;
         if (!parent || parent.clientWidth === 0) return;
@@ -986,7 +887,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, 0, w, h);
 
-        // 1. CIELO SEGÚN ESCENARIO
         const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
         if (env === 'city_night' || env === 'night_forest') {
             skyGrad.addColorStop(0, '#04091a');
@@ -1024,7 +924,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 2. DECORACIÓN DE CADA ESCENARIO
         if (env === 'suburb_road') {
             const palette = [
                 ['#334155', '#b91c1c'],
@@ -1148,7 +1047,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fill();
         }
 
-        // 3. SUPERFICIE DE DESPLAZAMIENTO
         if (env === 'racetrack') {
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(0, groundY, w, h - groundY);
@@ -1379,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function draw() {
-        if (!state.isPaused) {
+        if (!state.isPaused && (!dopplerModuleView || dopplerModuleView.style.display !== 'none')) {
             const cY = canvas.height / 2 + 12;
 
             drawScenarioBackdrop(canvas.width, canvas.height, cY);
@@ -1417,7 +1315,7 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(draw);
     }
 
-    // 6. EVENTOS DE SIMULADOR Y SELECTOR DE PERSPECTIVA
+    // 6. EVENTOS DE SIMULADOR DOPPLER
     const modePhysicsBtn = document.getElementById('modePhysicsBtn');
     const modeRealBtn = document.getElementById('modeRealBtn');
     if (modePhysicsBtn) modePhysicsBtn.addEventListener('click', () => setPerspectiveMode('physics'));
@@ -1437,8 +1335,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputs.themeSelect) {
         inputs.themeSelect.addEventListener('change', (e) => {
             document.body.setAttribute('data-theme', e.target.value);
-            Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted');
-            Object.values(charts).forEach(c => c.update('none'));
+            if (typeof Chart !== 'undefined') {
+                Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted');
+                Object.values(charts).forEach(c => c.update('none'));
+            }
+            if (mathModuleView && mathModuleView.style.display !== 'none') {
+                runNumericalIntegration();
+            }
         });
     }
 
@@ -1460,9 +1363,6 @@ document.addEventListener('DOMContentLoaded', () => {
         inputs.waveScale.value = 1.0;
         inputs.waveSpacing.value = 1.2;
         inputs.directionMode.value = 'custom';
-        if (inputs.numTimeWindow) inputs.numTimeWindow.value = 6.0;
-        if (inputs.numSubintervals) inputs.numSubintervals.value = 12;
-        if (inputs.numPerpDist) inputs.numPerpDist.value = 120;
         setPerspectiveMode('physics');
         state.waves = [];
     });
@@ -1499,9 +1399,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ["Frecuencia Percibida", "f'", state.fObs.toFixed(2).replace('.', ','), "Hz"],
             ["Velocidad Fuente", "vs", state.vS, "m/s"],
             ["Velocidad Receptor", "vr", state.vR, "m/s"],
-            ["Longitud de Onda", "lambda", state.lambda.toFixed(4).replace('.', ','), "m"],
-            ["Integral Acustica (Simpson 1/3)", "I_f", state.numIntegralVal.toFixed(2).replace('.', ','), "ciclos"],
-            ["Frecuencia Media Integrada", "f_avg", state.numAvgFreq.toFixed(2).replace('.', ','), "Hz"]
+            ["Longitud de Onda", "lambda", state.lambda.toFixed(4).replace('.', ','), "m"]
         ];
         rows.forEach(r => { csv += r.join(";") + "\n"; });
         const link = document.createElement("a");
@@ -1510,11 +1408,506 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
     });
 
-    window.addEventListener('resize', () => resizeCanvas(false));
+    window.addEventListener('resize', () => {
+        resizeCanvas(false);
+        if (mathModuleView && mathModuleView.style.display !== 'none') {
+            runNumericalIntegration();
+        }
+    });
 
-    // ==========================================
-    // 7. FIREBASE: ROLES, CLASE EN VIVO, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES
-    // ==========================================
+    // =========================================================================
+    // 7. MÓDULO 2: ANÁLISIS MATEMÁTICO — INTEGRACIÓN NUMÉRICA
+    // =========================================================================
+    const mathEls = {
+        funcInput: document.getElementById('mathFuncInput'),
+        lowerA: document.getElementById('mathLowerA'),
+        upperB: document.getElementById('mathUpperB'),
+        subintervalsN: document.getElementById('mathSubintervalsN'),
+        calcBtn: document.getElementById('mathCalcBtn'),
+        compareBtn: document.getElementById('mathCompareBtn'),
+        resetBtn: document.getElementById('mathResetBtn'),
+        exportCsvBtn: document.getElementById('mathExportCsvBtn'),
+        validationBox: document.getElementById('mathValidationBox'),
+        integralResult: document.getElementById('mathIntegralResult'),
+        methodBadge: document.getElementById('mathMethodBadge'),
+        stepResult: document.getElementById('mathStepResult'),
+        intervalResult: document.getElementById('mathIntervalResult'),
+        functionDisplay: document.getElementById('mathFunctionDisplay'),
+        exactRefResult: document.getElementById('mathExactRefResult'),
+        relErrorNote: document.getElementById('mathRelErrorNote'),
+        canvasFormulaTag: document.getElementById('mathCanvasFormulaTag'),
+        canvasOverlay: document.getElementById('mathCanvasOverlay'),
+        comparisonPanel: document.getElementById('mathComparisonPanel'),
+        comparisonTableBody: document.getElementById('mathComparisonTableBody'),
+        nodesTableBody: document.getElementById('mathNodesTableBody'),
+        canvas: document.getElementById('mathCanvas')
+    };
+
+    let lastMathRows = [];
+
+    function compileUserFunction(exprRaw) {
+        if (!exprRaw || !exprRaw.trim()) {
+            throw new Error("Ingresa una expresión matemática para f(x).");
+        }
+        let expr = exprRaw.trim()
+            .replace(/\^/g, '**')
+            .replace(/(\d)([a-zA-Z(])/g, '$1*$2')
+            .replace(/(\))(\d|[a-zA-Z(])/g, '$1*$2');
+
+        // Reemplazar constantes y funciones matemáticas seguras
+        expr = expr
+            .replace(/\bpi\b/gi, 'Math.PI')
+            .replace(/\be\b/g, 'Math.E')
+            .replace(/\bsen\b/gi, 'Math.sin')
+            .replace(/\bsin\b/gi, 'Math.sin')
+            .replace(/\bcos\b/gi, 'Math.cos')
+            .replace(/\btan\b/gi, 'Math.tan')
+            .replace(/\basin\b/gi, 'Math.asin')
+            .replace(/\bacos\b/gi, 'Math.acos')
+            .replace(/\batan\b/gi, 'Math.atan')
+            .replace(/\bsinh\b/gi, 'Math.sinh')
+            .replace(/\bcosh\b/gi, 'Math.cosh')
+            .replace(/\btanh\b/gi, 'Math.tanh')
+            .replace(/\bsqrt\b/gi, 'Math.sqrt')
+            .replace(/\bcbrt\b/gi, 'Math.cbrt')
+            .replace(/\bexp\b/gi, 'Math.exp')
+            .replace(/\bln\b/gi, 'Math.log')
+            .replace(/\blog10\b/gi, 'Math.log10')
+            .replace(/\blog\b/gi, 'Math.log')
+            .replace(/\babs\b/gi, 'Math.abs');
+
+        const fn = new Function('x', `"use strict"; return (${expr});`);
+        const testVal = fn(1);
+        if (typeof testVal !== 'number' || Number.isNaN(testVal)) {
+            // Probar en otro punto por si x=1 es singularidad
+            const testVal2 = fn(0.5);
+            if (typeof testVal2 !== 'number' || Number.isNaN(testVal2)) {
+                throw new Error("La función f(x) no produjo un resultado numérico válido.");
+            }
+        }
+        return fn;
+    }
+
+    function getSelectedNumMethod() {
+        const checked = document.querySelector('input[name="numMethod"]:checked');
+        return checked ? checked.value : 'simpson13';
+    }
+
+    function integrateWithMethod(fn, a, b, n, method) {
+        const h = (b - a) / n;
+        const rows = [];
+        let integral = 0;
+
+        if (method === 'rectangle') {
+            for (let i = 0; i < n; i++) {
+                const xm = a + (i + 0.5) * h;
+                const fxm = fn(xm);
+                if (!Number.isFinite(fxm)) throw new Error(`Discontinuidad o valor indefinido en x = ${xm.toFixed(4)}.`);
+                const contrib = h * fxm;
+                integral += contrib;
+                rows.push({ i, x: xm, fx: fxm, weight: '1 (Punto medio)', contrib });
+            }
+        } else if (method === 'trapezoid') {
+            let sum = 0;
+            for (let i = 0; i <= n; i++) {
+                const xi = a + i * h;
+                const fxi = fn(xi);
+                if (!Number.isFinite(fxi)) throw new Error(`Discontinuidad o valor indefinido en x = ${xi.toFixed(4)}.`);
+                const w = (i === 0 || i === n) ? 1 : 2;
+                const contrib = (h / 2) * w * fxi;
+                sum += w * fxi;
+                rows.push({ i, x: xi, fx: fxi, weight: w, contrib });
+            }
+            integral = (h / 2) * sum;
+        } else if (method === 'simpson13') {
+            if (n % 2 !== 0) {
+                throw new Error(`La Regla de Simpson 1/3 requiere que el número de subintervalos n sea PAR (actual: n = ${n}).`);
+            }
+            let sum = 0;
+            for (let i = 0; i <= n; i++) {
+                const xi = a + i * h;
+                const fxi = fn(xi);
+                if (!Number.isFinite(fxi)) throw new Error(`Discontinuidad o valor indefinido en x = ${xi.toFixed(4)}.`);
+                const w = (i === 0 || i === n) ? 1 : (i % 2 === 1 ? 4 : 2);
+                const contrib = (h / 3) * w * fxi;
+                sum += w * fxi;
+                rows.push({ i, x: xi, fx: fxi, weight: w, contrib });
+            }
+            integral = (h / 3) * sum;
+        } else if (method === 'simpson38') {
+            if (n % 3 !== 0) {
+                throw new Error(`La Regla de Simpson 3/8 requiere que n sea MÚLTIPLO DE 3 (actual: n = ${n}).`);
+            }
+            let sum = 0;
+            for (let i = 0; i <= n; i++) {
+                const xi = a + i * h;
+                const fxi = fn(xi);
+                if (!Number.isFinite(fxi)) throw new Error(`Discontinuidad o valor indefinido en x = ${xi.toFixed(4)}.`);
+                const w = (i === 0 || i === n) ? 1 : (i % 3 === 0 ? 2 : 3);
+                const contrib = (3 * h / 8) * w * fxi;
+                sum += w * fxi;
+                rows.push({ i, x: xi, fx: fxi, weight: w, contrib });
+            }
+            integral = (3 * h / 8) * sum;
+        }
+
+        return { integral, h, rows };
+    }
+
+    function computeHighPrecisionRef(fn, a, b) {
+        const nRef = 600; // Múltiplo de 2 y de 3
+        const h = (b - a) / nRef;
+        let sum = fn(a) + fn(b);
+        for (let i = 1; i < nRef; i++) {
+            const x = a + i * h;
+            sum += (i % 2 === 1 ? 4 : 2) * fn(x);
+        }
+        return (h / 3) * sum;
+    }
+
+    function drawMathIntegralCanvas(fn, a, b, n, method) {
+        const mCanvas = mathEls.canvas;
+        if (!mCanvas) return;
+        const parent = mCanvas.parentElement;
+        if (parent && parent.clientWidth > 0) {
+            mCanvas.width = parent.clientWidth;
+            mCanvas.height = parent.clientHeight || 340;
+        }
+
+        const mCtx = mCanvas.getContext('2d');
+        const W = mCanvas.width;
+        const H = mCanvas.height;
+
+        const bg = getComputedStyle(document.body).getPropertyValue('--surface-2').trim() || '#17233b';
+        mCtx.fillStyle = bg;
+        mCtx.fillRect(0, 0, W, H);
+
+        const padL = 54, padR = 24, padT = 28, padB = 38;
+        const plotW = Math.max(40, W - padL - padR);
+        const plotH = Math.max(40, H - padT - padB);
+
+        // Muestrear curva continua
+        const curvePts = [];
+        const samplesCount = 240;
+        let yMin = 0;
+        let yMax = 0;
+
+        for (let i = 0; i <= samplesCount; i++) {
+            const x = a + (b - a) * (i / samplesCount);
+            const y = fn(x);
+            if (Number.isFinite(y)) {
+                curvePts.push({ x, y });
+                if (y < yMin) yMin = y;
+                if (y > yMax) yMax = y;
+            }
+        }
+
+        if (Math.abs(yMax - yMin) < 1e-6) {
+            yMax += 1;
+            yMin -= 1;
+        } else {
+            const margin = (yMax - yMin) * 0.14;
+            yMax += margin;
+            if (yMin < 0) yMin -= margin;
+        }
+
+        const toPxX = (x) => padL + ((x - a) / (b - a)) * plotW;
+        const toPxY = (y) => padT + ((yMax - y) / (yMax - yMin)) * plotH;
+        const zeroY = toPxY(0);
+
+        // Cuadrícula de fondo
+        mCtx.strokeStyle = 'rgba(145, 162, 189, 0.12)';
+        mCtx.lineWidth = 1;
+        for (let g = 0; g <= 5; g++) {
+            const gy = padT + (g / 5) * plotH;
+            mCtx.beginPath();
+            mCtx.moveTo(padL, gy);
+            mCtx.lineTo(W - padR, gy);
+            mCtx.stroke();
+        }
+
+        // Subintervalos sombreados según el método elegido
+        const h = (b - a) / n;
+        for (let i = 0; i < n; i++) {
+            const x0 = a + i * h;
+            const x1 = x0 + h;
+            const px0 = toPxX(x0);
+            const px1 = toPxX(x1);
+
+            mCtx.fillStyle = i % 2 === 0 ? 'rgba(99, 215, 198, 0.22)' : 'rgba(114, 169, 255, 0.22)';
+            mCtx.strokeStyle = 'rgba(99, 215, 198, 0.65)';
+            mCtx.lineWidth = 1.2;
+
+            mCtx.beginPath();
+            if (method === 'rectangle') {
+                const xm = (x0 + x1) / 2;
+                const ym = fn(xm);
+                const pym = toPxY(ym);
+                mCtx.moveTo(px0, zeroY);
+                mCtx.lineTo(px0, pym);
+                mCtx.lineTo(px1, pym);
+                mCtx.lineTo(px1, zeroY);
+            } else if (method === 'trapezoid') {
+                const py0 = toPxY(fn(x0));
+                const py1 = toPxY(fn(x1));
+                mCtx.moveTo(px0, zeroY);
+                mCtx.lineTo(px0, py0);
+                mCtx.lineTo(px1, py1);
+                mCtx.lineTo(px1, zeroY);
+            } else {
+                // Simpson 1/3 o 3/8: sombreado siguiendo la curva en cada subintervalo
+                mCtx.moveTo(px0, zeroY);
+                const subSteps = 12;
+                for (let s = 0; s <= subSteps; s++) {
+                    const xs = x0 + (h * s) / subSteps;
+                    mCtx.lineTo(toPxX(xs), toPxY(fn(xs)));
+                }
+                mCtx.lineTo(px1, zeroY);
+            }
+            mCtx.closePath();
+            mCtx.fill();
+            mCtx.stroke();
+        }
+
+        // Eje horizontal y = 0
+        mCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        mCtx.lineWidth = 1.5;
+        mCtx.beginPath();
+        mCtx.moveTo(padL, zeroY);
+        mCtx.lineTo(W - padR, zeroY);
+        mCtx.stroke();
+
+        // Curva f(x)
+        mCtx.strokeStyle = '#ffb66b';
+        mCtx.lineWidth = 2.6;
+        mCtx.beginPath();
+        curvePts.forEach((pt, idx) => {
+            const px = toPxX(pt.x);
+            const py = toPxY(pt.y);
+            if (idx === 0) mCtx.moveTo(px, py);
+            else mCtx.lineTo(px, py);
+        });
+        mCtx.stroke();
+
+        // Puntos nodales
+        mCtx.fillStyle = '#63d7c6';
+        for (let i = 0; i <= n; i++) {
+            const xi = a + i * h;
+            const yi = fn(xi);
+            if (!Number.isFinite(yi)) continue;
+            mCtx.beginPath();
+            mCtx.arc(toPxX(xi), toPxY(yi), 3.5, 0, Math.PI * 2);
+            mCtx.fill();
+        }
+
+        // Etiquetas de ejes
+        mCtx.fillStyle = '#91a2bd';
+        mCtx.font = '11px "JetBrains Mono", monospace';
+        mCtx.textAlign = 'left';
+        mCtx.fillText(`a = ${a}`, padL, H - 12);
+        mCtx.textAlign = 'right';
+        mCtx.fillText(`b = ${b}`, W - padR, H - 12);
+        mCtx.textAlign = 'right';
+        mCtx.fillText(yMax.toFixed(2), padL - 6, padT + 8);
+        mCtx.fillText(yMin.toFixed(2), padL - 6, H - padB);
+    }
+
+    function showMathValidationError(msg) {
+        if (!mathEls.validationBox) return;
+        mathEls.validationBox.style.display = 'block';
+        mathEls.validationBox.innerHTML = `⚠️ <strong>Validación:</strong> ${escapeHTML(msg)}`;
+    }
+
+    function clearMathValidationError() {
+        if (mathEls.validationBox) {
+            mathEls.validationBox.style.display = 'none';
+            mathEls.validationBox.innerHTML = '';
+        }
+    }
+
+    function runNumericalIntegration() {
+        if (!mathEls.funcInput) return;
+        clearMathValidationError();
+
+        try {
+            const rawExpr = mathEls.funcInput.value;
+            const a = parseFloat(mathEls.lowerA.value);
+            const b = parseFloat(mathEls.upperB.value);
+            const n = parseInt(mathEls.subintervalsN.value, 10);
+            const method = getSelectedNumMethod();
+
+            if (Number.isNaN(a) || Number.isNaN(b)) {
+                throw new Error("Los límites de integración a y b deben ser valores numéricos.");
+            }
+            if (b <= a) {
+                throw new Error("El límite superior b debe ser estrictamente mayor que el límite inferior a (b > a).");
+            }
+            if (!Number.isInteger(n) || n <= 0) {
+                throw new Error("El número de subintervalos n debe ser un entero positivo (n ≥ 1).");
+            }
+
+            const fn = compileUserFunction(rawExpr);
+            const { integral, h, rows } = integrateWithMethod(fn, a, b, n, method);
+            const exactRef = computeHighPrecisionRef(fn, a, b);
+            const relErr = Math.abs(exactRef) > 1e-12
+                ? (Math.abs(integral - exactRef) / Math.abs(exactRef)) * 100
+                : Math.abs(integral - exactRef);
+
+            const methodNames = {
+                rectangle: 'Regla del Rectángulo',
+                trapezoid: 'Regla del Trapecio',
+                simpson13: 'Regla de Simpson 1/3',
+                simpson38: 'Regla de Simpson 3/8'
+            };
+
+            if (mathEls.integralResult) mathEls.integralResult.textContent = integral.toFixed(6);
+            if (mathEls.methodBadge) mathEls.methodBadge.textContent = `Método: ${methodNames[method]}`;
+            if (mathEls.stepResult) mathEls.stepResult.textContent = h.toFixed(6);
+            if (mathEls.intervalResult) mathEls.intervalResult.textContent = `[${a}, ${b}] · n = ${n}`;
+            if (mathEls.functionDisplay) mathEls.functionDisplay.textContent = `f(x) = ${rawExpr}`;
+            if (mathEls.exactRefResult) mathEls.exactRefResult.textContent = exactRef.toFixed(6);
+            if (mathEls.relErrorNote) mathEls.relErrorNote.textContent = `Error relativo est.: ${relErr.toFixed(4)} %`;
+            if (mathEls.canvasFormulaTag) mathEls.canvasFormulaTag.textContent = `h = (${b} − ${a}) / ${n} = ${h.toFixed(4)}`;
+            if (mathEls.canvasOverlay) mathEls.canvasOverlay.textContent = `${methodNames[method].toUpperCase()} · n = ${n}`;
+
+            lastMathRows = rows;
+            if (mathEls.nodesTableBody) {
+                mathEls.nodesTableBody.innerHTML = rows.map(r => `
+                    <tr>
+                        <td>${r.i}</td>
+                        <td>${r.x.toFixed(6)}</td>
+                        <td>${r.fx.toFixed(6)}</td>
+                        <td>${r.weight}</td>
+                        <td>${r.contrib.toFixed(6)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            drawMathIntegralCanvas(fn, a, b, n, method);
+        } catch (err) {
+            showMathValidationError(err.message);
+        }
+    }
+
+    function compareAllNumericalMethods() {
+        if (!mathEls.funcInput) return;
+        clearMathValidationError();
+
+        try {
+            const rawExpr = mathEls.funcInput.value;
+            const a = parseFloat(mathEls.lowerA.value);
+            const b = parseFloat(mathEls.upperB.value);
+            const n = parseInt(mathEls.subintervalsN.value, 10);
+
+            if (Number.isNaN(a) || Number.isNaN(b) || b <= a) {
+                throw new Error("Verifica que a y b sean números válidos con b > a.");
+            }
+            if (!Number.isInteger(n) || n <= 0) {
+                throw new Error("El número de subintervalos n debe ser un entero positivo (n ≥ 1).");
+            }
+
+            const fn = compileUserFunction(rawExpr);
+            const exactRef = computeHighPrecisionRef(fn, a, b);
+
+            const specs = [
+                { id: 'rectangle', name: 'Regla del Rectángulo (Punto medio)', cond: 'Todo n ≥ 1' },
+                { id: 'trapezoid', name: 'Regla del Trapecio Compuesto', cond: 'Todo n ≥ 1' },
+                { id: 'simpson13', name: 'Regla de Simpson 1/3 Compuesto', cond: 'n debe ser par' },
+                { id: 'simpson38', name: 'Regla de Simpson 3/8 Compuesto', cond: 'n múltiplo de 3' }
+            ];
+
+            if (mathEls.comparisonPanel) mathEls.comparisonPanel.style.display = 'block';
+            if (mathEls.comparisonTableBody) {
+                mathEls.comparisonTableBody.innerHTML = specs.map(sp => {
+                    try {
+                        const res = integrateWithMethod(fn, a, b, n, sp.id);
+                        const diff = Math.abs(res.integral - exactRef);
+                        return `
+                            <tr>
+                                <td><strong>${sp.name}</strong></td>
+                                <td>${sp.cond}</td>
+                                <td style="color: var(--primary);">✓ Aplicable</td>
+                                <td><strong>${res.integral.toFixed(6)}</strong></td>
+                                <td>${diff.toExponential(3)}</td>
+                            </tr>
+                        `;
+                    } catch (e) {
+                        return `
+                            <tr>
+                                <td><strong>${sp.name}</strong></td>
+                                <td>${sp.cond}</td>
+                                <td style="color: var(--warning);">No aplicable (n = ${n})</td>
+                                <td>—</td>
+                                <td>—</td>
+                            </tr>
+                        `;
+                    }
+                }).join('');
+            }
+        } catch (err) {
+            showMathValidationError(err.message);
+        }
+    }
+
+    if (mathEls.calcBtn) {
+        mathEls.calcBtn.addEventListener('click', runNumericalIntegration);
+    }
+    if (mathEls.compareBtn) {
+        mathEls.compareBtn.addEventListener('click', () => {
+            runNumericalIntegration();
+            compareAllNumericalMethods();
+        });
+    }
+    if (mathEls.resetBtn) {
+        mathEls.resetBtn.addEventListener('click', () => {
+            mathEls.funcInput.value = 'x^2 + 2*x + 1';
+            mathEls.lowerA.value = '0';
+            mathEls.upperB.value = '4';
+            mathEls.subintervalsN.value = '6';
+            const s13 = document.querySelector('input[name="numMethod"][value="simpson13"]');
+            if (s13) s13.checked = true;
+            if (mathEls.comparisonPanel) mathEls.comparisonPanel.style.display = 'none';
+            runNumericalIntegration();
+        });
+    }
+
+    document.querySelectorAll('.math-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            mathEls.funcInput.value = btn.dataset.fn;
+            mathEls.lowerA.value = btn.dataset.a;
+            mathEls.upperB.value = btn.dataset.b;
+            mathEls.subintervalsN.value = btn.dataset.n;
+            runNumericalIntegration();
+        });
+    });
+
+    document.querySelectorAll('input[name="numMethod"]').forEach(radio => {
+        radio.addEventListener('change', runNumericalIntegration);
+    });
+
+    if (mathEls.exportCsvBtn) {
+        mathEls.exportCsvBtn.addEventListener('click', () => {
+            if (!lastMathRows.length) return;
+            let csv = "i;xi;f(xi);Peso;Contribucion\n";
+            lastMathRows.forEach(r => {
+                csv += [
+                    r.i,
+                    r.x.toFixed(6).replace('.', ','),
+                    r.fx.toFixed(6).replace('.', ','),
+                    r.weight,
+                    r.contrib.toFixed(6).replace('.', ',')
+                ].join(";") + "\n";
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }));
+            link.download = `integracion_numerica_unemi_${Date.now()}.csv`;
+            link.click();
+        });
+    }
+
+    // =========================================================================
+    // 8. FIREBASE: ROLES, CLASE EN VIVO, MATERIALES, TAREAS, CHAT Y NOTIFICACIONES
+    // =========================================================================
     const MAX_FIRESTORE_FILE_BYTES = 700 * 1024;
     const JITSI_ROOM_NAME = "LaboratorioFisicaUNEMIDoppler";
 
@@ -2347,6 +2740,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
+        loginBtn.addEventListener('click', () => {
+            window.signInWithPopup(window.firebaseAuth, window.googleProvider)
+                .catch(err => console.error("Error login:", err));
+        });
+
         window.onAuthStateChanged(window.firebaseAuth, async (user) => {
             if (user) {
                 loginBtn.style.display = 'none';
@@ -2375,13 +2773,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        loginBtn.addEventListener('click', () => {
-            window.signInWithPopup(window.firebaseAuth, window.googleProvider).catch((err) => {
-                console.error("Error de login:", err);
-                alert("No se pudo iniciar sesión: " + err.message);
-            });
-        });
-
         logoutBtn.addEventListener('click', () => {
             window.signOut(window.firebaseAuth);
         });
@@ -2399,11 +2790,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 
-    // INICIALIZACIÓN
+    // INICIALIZACIÓN DE AMBOS MÓDULOS
     initRealScenariosUI();
     resizeCanvas(true);
     initCharts();
     calculatePhysics();
+    runNumericalIntegration();
     requestAnimationFrame(draw);
     setInterval(() => {
         if (!state.isPaused) updateCharts();
