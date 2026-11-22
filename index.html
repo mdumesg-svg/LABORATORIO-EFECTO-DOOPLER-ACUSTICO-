@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Simulador avanzado del efecto Doppler acústico y aula virtual">
-    <title>Simulador Interactivo | Efecto Doppler</title>
+    <meta name="description" content="Simulador avanzado del efecto Doppler acústico, integración numérica y aula virtual">
+    <title>Simulador Interactivo | Física y Análisis Matemático</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,12 +23,22 @@
 
 <header class="topbar">
     <div class="brand">
-        <div class="brand-mark">∿</div>
+        <div class="brand-mark" id="brandMark">∿</div>
         <div>
-            <p class="eyebrow">LABORATORIO VIRTUAL DE FÍSICA</p>
-            <h1>Efecto Doppler <span>acústico</span></h1>
+            <p class="eyebrow" id="brandEyebrow">LABORATORIO VIRTUAL DE CIENCIAS</p>
+            <h1 id="brandTitle">Efecto Doppler <span>acústico</span></h1>
         </div>
     </div>
+
+    <!-- SELECTOR DE MÓDULO (FÍSICA VS ANÁLISIS MATEMÁTICO) -->
+    <nav class="module-switcher" aria-label="Selector de asignatura">
+        <button type="button" class="mod-btn active" id="navDopplerBtn" data-module="doppler">
+            ∿ Efecto Doppler (Física)
+        </button>
+        <button type="button" class="mod-btn" id="navMathBtn" data-module="math">
+            ∫ Integración Numérica (Análisis)
+        </button>
+    </nav>
 
     <div class="header-actions">
         <label class="theme-control">
@@ -52,7 +62,10 @@
     </div>
 </header>
 
-<main class="page">
+<!-- =====================================================================
+     MÓDULO 1: SIMULADOR DEL EFECTO DOPPLER ACÚSTICO (INTACTO)
+     ===================================================================== -->
+<main class="page" id="dopplerModuleView">
 
     <section class="intro panel">
         <div>
@@ -252,8 +265,8 @@
                     </div>
                 </div>
 
-                <!-- NUEVO: SELECTOR DE PERSPECTIVA (FÍSICA VS VIDA REAL) -->
-                <div class="perspective-bar">
+                <!-- SELECTOR DE PERSPECTIVA (FÍSICA VS VIDA REAL) -->
+                <div class="perspective-header" style="margin-bottom: 12px;">
                     <div class="perspective-tabs" role="tablist">
                         <button type="button" class="persp-btn active" id="modePhysicsBtn" data-perspective="physics">
                             🔬 Perspectiva desde la Física
@@ -262,15 +275,15 @@
                             🌍 Escenarios de la Vida Real (12)
                         </button>
                     </div>
-                    <span class="persp-badge" id="activeScenarioBadge">Vista esquemática de laboratorio</span>
+                    <span class="scenario-badge" id="activeScenarioBadge">Vista esquemática de laboratorio</span>
                 </div>
 
-                <!-- NUEVO: SELECTOR DE 12 ESCENARIOS DE LA VIDA REAL -->
-                <div id="realScenariosDrawer" class="scenarios-drawer" style="display: none;">
-                    <p id="scenarioContextText" class="scenario-context-text">
+                <!-- SELECTOR DE 12 ESCENARIOS DE LA VIDA REAL -->
+                <div id="realScenariosDrawer" class="real-scenarios-drawer" style="display: none; margin-bottom: 12px;">
+                    <p id="scenarioContextText" class="scenario-context-bar">
                         🚑 <strong>Ambulancia en avenida:</strong> sirena a 660 Hz desplazándose a 32 m/s frente a un peatón.
                     </p>
-                    <div id="realScenariosGrid" class="scenarios-grid"></div>
+                    <div id="realScenariosGrid" class="real-scenarios-grid"></div>
                 </div>
 
                 <div class="canvas-wrap">
@@ -278,10 +291,9 @@
                     <div class="canvas-overlay">
                         <span class="live-dot"></span> <span id="canvasModeOverlay">SIMULACIÓN ACTIVA · FÍSICA</span>
                     </div>
-                    <!-- Leyenda de color de ondas -->
-                    <div class="wave-color-legend">
-                        <span><i class="dot-comp"></i> Compresión (λ' menor · agudo)</span>
-                        <span><i class="dot-exp"></i> Expansión (λ'' mayor · grave)</span>
+                    <div class="wave-legend">
+                        <span class="legend-item"><i class="legend-swatch compressed"></i> Compresión (λ' menor · agudo)</span>
+                        <span class="legend-item"><i class="legend-swatch expanded"></i> Expansión (λ'' mayor · grave)</span>
                     </div>
                 </div>
 
@@ -417,7 +429,7 @@
                 </div>
             </div>
 
-            <!-- MATERIAL DE CLASE (Descarga para todos; subida exclusiva para docentes) -->
+            <!-- MATERIAL DE CLASE -->
             <div class="edu-section" id="materialPanel" style="display: none;">
                 <h3>📖 Material de Clase</h3>
                 <div class="resource-links">
@@ -429,7 +441,6 @@
                     </a>
                 </div>
 
-                <!-- CONTROLES EXCLUSIVOS PARA EL DOCENTE -->
                 <div id="teacherMaterialUpload" class="teacher-upload-box" style="display: none;">
                     <h4>⬆️ Subir / Actualizar Material (Docente)</h4>
                     <label class="file-label">
@@ -503,6 +514,245 @@
             </table>
         </div>
     </section>
+
+</main>
+
+<!-- =====================================================================
+     MÓDULO 2: ANÁLISIS MATEMÁTICO — INTEGRACIÓN NUMÉRICA (CP2 UNEMI)
+     ===================================================================== -->
+<main class="page" id="mathModuleView" style="display: none;">
+
+    <section class="intro panel">
+        <div>
+            <span class="tag">ANÁLISIS MATEMÁTICO · UNIDAD 3 Y 4</span>
+            <h2>Simulador de Integración Numérica: Rectángulo, Trapecio y Simpson</h2>
+            <p>Aproxima integrales definidas en un intervalo [a, b] mediante subintervalos n, visualiza el área bajo la curva y compara la precisión entre métodos numéricos.</p>
+        </div>
+        <div class="sound-icon">∫<sub>a</sub><sup>b</sup></div>
+    </section>
+
+    <!-- MÉTRICAS PRINCIPALES DEL CÁLCULO NUMÉRICO -->
+    <section class="metrics-grid">
+        <article class="metric-card accent">
+            <span>Integral aproximada (I)</span>
+            <strong id="mathIntegralResult">37.333333</strong>
+            <em id="mathMethodBadge">Método: Simpson 1/3</em>
+        </article>
+        <article class="metric-card">
+            <span>Tamaño de paso (h)</span>
+            <strong id="mathStepResult">0.666667</strong>
+            <em>h = (b − a) / n</em>
+        </article>
+        <article class="metric-card">
+            <span>Intervalo [a, b] y n</span>
+            <strong id="mathIntervalResult">[0, 4] · n = 6</strong>
+            <em id="mathFunctionDisplay">f(x) = x^2 + 2*x + 1</em>
+        </article>
+        <article class="metric-card">
+            <span>Valor de referencia (n alto)</span>
+            <strong id="mathExactRefResult">37.333333</strong>
+            <em id="mathRelErrorNote">Error estimado: 0.0000 %</em>
+        </article>
+    </section>
+
+    <!-- ÁREA DE TRABAJO DE INTEGRACIÓN NUMÉRICA -->
+    <div class="math-workspace">
+
+        <!-- PANEL IZQUIERDO: DATOS DE ENTRADA OBLIGATORIOS -->
+        <aside class="panel controls-panel">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">PARÁMETROS DE ENTRADA</span>
+                    <h2>Configurar Integral</h2>
+                </div>
+                <button type="button" class="text-button" id="mathResetBtn">Ejemplo base</button>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="mathFuncInput">Función f(x)</label>
+                    <span class="math-hint">Ej: x^2 + 2*x + 1</span>
+                </div>
+                <input type="text" id="mathFuncInput" class="math-input-full" value="x^2 + 2*x + 1" placeholder="Ej: sin(x), exp(-x^2), sqrt(x+1)">
+                <div class="math-presets">
+                    <button type="button" class="mini-button math-preset-btn" data-fn="x^2 + 2*x + 1" data-a="0" data-b="4" data-n="6">x²+2x+1</button>
+                    <button type="button" class="mini-button math-preset-btn" data-fn="sin(x)" data-a="0" data-b="3.141593" data-n="6">sin(x)</button>
+                    <button type="button" class="mini-button math-preset-btn" data-fn="exp(-x^2)" data-a="0" data-b="1" data-n="6">e^(-x²)</button>
+                    <button type="button" class="mini-button math-preset-btn" data-fn="1/(1 + x^2)" data-a="0" data-b="1" data-n="6">1/(1+x²)</button>
+                </div>
+            </div>
+
+            <div class="math-limits-row">
+                <div class="control-group">
+                    <div class="control-title">
+                        <label for="mathLowerA">Límite inferior (a)</label>
+                    </div>
+                    <input type="number" id="mathLowerA" class="math-input-full" step="any" value="0">
+                </div>
+                <div class="control-group">
+                    <div class="control-title">
+                        <label for="mathUpperB">Límite superior (b)</label>
+                    </div>
+                    <input type="number" id="mathUpperB" class="math-input-full" step="any" value="4">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">
+                    <label for="mathSubintervalsN">Subintervalos (n)</label>
+                    <span class="math-hint">Entero n &gt; 0</span>
+                </div>
+                <input type="number" id="mathSubintervalsN" class="math-input-full" step="1" min="1" value="6">
+            </div>
+
+            <!-- SELECCIÓN DEL MÉTODO MEDIANTE BOTONES DE OPCIÓN -->
+            <div class="control-group">
+                <div class="control-title">
+                    <label>Método de integración</label>
+                </div>
+                <div class="math-radio-list" role="radiogroup" aria-label="Método de integración numérica">
+                    <label class="math-radio-card">
+                        <input type="radio" name="numMethod" value="rectangle">
+                        <div>
+                            <strong>Regla del Rectángulo</strong>
+                            <span>Punto medio · Válido para todo n ≥ 1</span>
+                        </div>
+                    </label>
+                    <label class="math-radio-card">
+                        <input type="radio" name="numMethod" value="trapezoid">
+                        <div>
+                            <strong>Regla del Trapecio</strong>
+                            <span>Segmentos lineales · Válido para todo n ≥ 1</span>
+                        </div>
+                    </label>
+                    <label class="math-radio-card">
+                        <input type="radio" name="numMethod" value="simpson13" checked>
+                        <div>
+                            <strong>Regla de Simpson 1/3</strong>
+                            <span>Arcos parabólicos · Requiere n par</span>
+                        </div>
+                    </label>
+                    <label class="math-radio-card">
+                        <input type="radio" name="numMethod" value="simpson38">
+                        <div>
+                            <strong>Regla de Simpson 3/8</strong>
+                            <span>Polinomios cúbicos · Requiere n múltiplo de 3</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- BOTONES PRINCIPALES OBLIGATORIOS -->
+            <div class="math-action-buttons">
+                <button type="button" class="btn btn-primary" id="mathCalcBtn">CALCULAR</button>
+                <button type="button" class="btn btn-outline" id="mathCompareBtn">COMPARAR MÉTODOS</button>
+            </div>
+
+            <!-- ALERTA DE VALIDACIÓN MATEMÁTICA -->
+            <div class="notice math-error-box" id="mathValidationBox" style="display: none; margin-top: 12px;"></div>
+        </aside>
+
+        <!-- COLUMNA DERECHA: GRÁFICA DEL ÁREA, COMPARACIÓN Y TABLA DE NODOS -->
+        <section class="main-column">
+
+            <!-- VISUALIZACIÓN DEL ÁREA BAJO LA CURVA -->
+            <section class="panel simulation-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">REPRESENTACIÓN GEOMÉTRICA</span>
+                        <h2>Gráfica de f(x) y aproximación del área</h2>
+                    </div>
+                    <span class="live-badge" id="mathCanvasFormulaTag">h = (b − a) / n</span>
+                </div>
+
+                <div class="canvas-wrap math-canvas-wrap">
+                    <canvas id="mathCanvas"></canvas>
+                    <div class="canvas-overlay">
+                        <span class="live-dot"></span> <span id="mathCanvasOverlay">SIMPSON 1/3 · n = 6</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL DE COMPARACIÓN DE LOS 4 MÉTODOS -->
+            <section class="panel" id="mathComparisonPanel" style="display: none;">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">ANÁLISIS COMPARATIVO</span>
+                        <h2>Comparación simultánea de los 4 métodos</h2>
+                    </div>
+                    <span class="live-badge" id="mathCompSummaryBadge">Mismo f(x), [a, b] y n</span>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Método Numérico</th>
+                                <th>Condición de n</th>
+                                <th>Estado</th>
+                                <th>Integral Aproximada</th>
+                                <th>Diferencia vs. Ref.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mathComparisonTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TABLA DE VALORES xi Y f(xi) UTILIZADOS EN EL CÁLCULO -->
+            <section class="panel data-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">NODOS DE EVALUACIÓN</span>
+                        <h2>Tabla de valores xᵢ y f(xᵢ)</h2>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="mathExportCsvBtn">Descargar tabla a Excel (.CSV)</button>
+                </div>
+                <div class="table-scroll math-nodes-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>i</th>
+                                <th>xᵢ</th>
+                                <th>f(xᵢ)</th>
+                                <th>Coeficiente / Peso</th>
+                                <th>Contribución</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mathNodesTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- FÓRMULAS IMPLEMENTADAS EN INTEGRACIÓN NUMÉRICA -->
+            <section class="panel formulas-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">MODELO MATEMÁTICO</span>
+                        <h2>Fórmulas de cuadratura numérica</h2>
+                    </div>
+                </div>
+                <div class="formula-grid">
+                    <article class="formula-card">
+                        <div class="formula-head"><h3>1. Regla del Rectángulo</h3></div>
+                        <div class="equation">I ≈ h · Σ f(xᵢ + h/2)</div>
+                    </article>
+                    <article class="formula-card">
+                        <div class="formula-head"><h3>2. Regla del Trapecio</h3></div>
+                        <div class="equation">I ≈ (h/2)·[f(x₀) + 2Σf(xᵢ) + f(xₙ)]</div>
+                    </article>
+                    <article class="formula-card">
+                        <div class="formula-head"><h3>3. Simpson 1/3 (n par)</h3></div>
+                        <div class="equation">I ≈ (h/3)·[f(x₀) + 4Σf_imp + 2Σf_par + f(xₙ)]</div>
+                    </article>
+                    <article class="formula-card">
+                        <div class="formula-head"><h3>4. Simpson 3/8 (n mult. 3)</h3></div>
+                        <div class="equation">I ≈ (3h/8)·[f(x₀) + 3Σf_no3 + 2Σf_mult3 + f(xₙ)]</div>
+                    </article>
+                </div>
+            </section>
+
+        </section>
+    </div>
 
 </main>
 
