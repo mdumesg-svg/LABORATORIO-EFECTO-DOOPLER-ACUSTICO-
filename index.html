@@ -652,7 +652,7 @@
             <div class="notice math-error-box" id="mathValidationBox" style="display: none; margin-top: 12px;"></div>
         </aside>
 
-        <!-- COLUMNA DERECHA: GRÁFICA DEL ÁREA, COMPARACIÓN, TABLA DE NODOS Y FUNDAMENTO TEÓRICO -->
+        <!-- COLUMNA DERECHA: GRÁFICA, COMPARACIÓN, TABLA, FUNDAMENTO, FÓRMULAS, MATERIAL Y CHAT -->
         <section class="main-column">
 
             <!-- VISUALIZACIÓN DEL ÁREA BAJO LA CURVA -->
@@ -736,8 +736,8 @@
                 <div class="edu-section" style="margin-bottom: 14px;">
                     <p class="concept-text">
                         La <strong>integración numérica (cuadratura)</strong> permite estimar el valor de la integral definida
-                        $\int_{a}^{b} f(x)\,dx$ cuando la función no tiene una antiderivada elemental o solo se conoce en puntos discretos.
-                        Consiste en dividir el intervalo $[a, b]$ en <strong>$n$ subintervalos</strong> de ancho uniforme $h = \frac{b - a}{n}$ y aproximar $f(x)$ en cada tramo mediante un polinomio interpolador fácil de integrar:
+                        <strong>∫ₐᵇ f(x) dx</strong> cuando la función no tiene una antiderivada elemental o solo se conoce en puntos discretos.
+                        Consiste en dividir el intervalo <strong>[a, b]</strong> en <strong>n subintervalos</strong> de ancho uniforme <strong>h = (b − a) / n</strong> y aproximar f(x) en cada tramo mediante un polinomio interpolador fácil de integrar:
                     </p>
                 </div>
 
@@ -748,7 +748,7 @@
                             <span class="tag">Grado 0 · O(h²)</span>
                         </div>
                         <p class="concept-text" style="margin-top: 8px;">
-                            <strong>¿Qué significa?</strong> Aproxima el área bajo la curva en cada subintervalo $[x_i, x_{i+1}]$ mediante un <strong>rectángulo</strong> cuya altura es el valor de la función en el punto medio $x_m = x_i + \frac{h}{2}$. Es válida para cualquier entero $n \ge 1$ y resulta exacta para funciones constantes y lineales.
+                            <strong>¿Qué significa?</strong> Aproxima el área bajo la curva en cada subintervalo [xᵢ, xᵢ₊₁] mediante un <strong>rectángulo</strong> cuya altura es el valor de la función en el punto medio xₘ = xᵢ + h/2. Es válida para cualquier entero n ≥ 1 y resulta exacta para funciones constantes y lineales.
                         </p>
                     </article>
 
@@ -758,7 +758,7 @@
                             <span class="tag">Grado 1 · O(h²)</span>
                         </div>
                         <p class="concept-text" style="margin-top: 8px;">
-                            <strong>¿Qué significa?</strong> Sustituye la curva $f(x)$ en cada subintervalo por un <strong>segmento recto</strong> que une $(x_i, f(x_i))$ con $(x_{i+1}, f(x_{i+1}))$, formando trapecios cuya suma de áreas estima la integral. Los nodos interiores tienen peso $2$ porque pertenecen a dos trapecios adyacentes. Válida para cualquier $n \ge 1$.
+                            <strong>¿Qué significa?</strong> Sustituye la curva f(x) en cada subintervalo por un <strong>segmento recto</strong> que une (xᵢ, f(xᵢ)) con (xᵢ₊₁, f(xᵢ₊₁)), formando trapecios cuya suma de áreas estima la integral. Los nodos interiores tienen peso 2 porque pertenecen a dos trapecios adyacentes. Válida para cualquier n ≥ 1.
                         </p>
                     </article>
 
@@ -768,7 +768,7 @@
                             <span class="tag">Grado 2 · O(h⁴)</span>
                         </div>
                         <p class="concept-text" style="margin-top: 8px;">
-                            <strong>¿Qué significa?</strong> Agrupa los subintervalos de <strong>dos en dos</strong> y ajusta una <strong>parábola (polinomio cuadrático)</strong> cada tres puntos consecutivos. Al capturar la curvatura de $f(x)$, reduce drásticamente el error frente al trapecio y es exacta hasta polinomios cúbicos. <strong>Condición:</strong> $n$ debe ser un número <strong>par</strong>.
+                            <strong>¿Qué significa?</strong> Agrupa los subintervalos de <strong>dos en dos</strong> y ajusta una <strong>parábola (polinomio cuadrático)</strong> cada tres puntos consecutivos. Al capturar la curvatura de f(x), reduce drásticamente el error frente al trapecio y es exacta hasta polinomios cúbicos. <strong>Condición:</strong> n debe ser un número <strong>par</strong>.
                         </p>
                     </article>
 
@@ -778,41 +778,115 @@
                             <span class="tag">Grado 3 · O(h⁴)</span>
                         </div>
                         <p class="concept-text" style="margin-top: 8px;">
-                            <strong>¿Qué significa?</strong> Agrupa los subintervalos de <strong>tres en tres</strong> y ajusta un <strong>polinomio cúbico</strong> cada cuatro nodos consecutivos, aplicando pesos alternados $1, 3, 3, 2, \dots, 1$. Resulta especialmente útil cuando la partición del intervalo exige un número de subintervalos divisible para tres. <strong>Condición:</strong> $n$ debe ser <strong>múltiplo de 3</strong>.
+                            <strong>¿Qué significa?</strong> Agrupa los subintervalos de <strong>tres en tres</strong> y ajusta un <strong>polinomio cúbico</strong> cada cuatro nodos consecutivos, aplicando pesos alternados 1, 3, 3, 2, …, 1. Resulta especialmente útil cuando la partición del intervalo exige un número de subintervalos divisible para tres. <strong>Condición:</strong> n debe ser <strong>múltiplo de 3</strong>.
                         </p>
                     </article>
                 </div>
 
                 <div class="literature-note" style="margin-top: 12px;">
-                    <strong>Nota de convergencia:</strong> Al aumentar el número de subintervalos $n$, el tamaño de paso $h$ disminuye y todas las aproximaciones convergen hacia el valor exacto de la integral definida.
+                    <strong>Nota de convergencia:</strong> Al aumentar el número de subintervalos n, el tamaño de paso h disminuye y todas las aproximaciones convergen hacia el valor exacto de la integral definida.
                 </div>
             </section>
 
-            <!-- FÓRMULAS IMPLEMENTADAS EN INTEGRACIÓN NUMÉRICA -->
+            <!-- FÓRMULAS IMPLEMENTADAS EN INTEGRACIÓN NUMÉRICA CON PROCEDIMIENTO -->
             <section class="panel formulas-panel">
                 <div class="section-heading">
                     <div>
                         <span class="eyebrow">MODELO MATEMÁTICO</span>
                         <h2>Fórmulas de cuadratura numérica</h2>
                     </div>
+                    <span class="live-badge">Actualización automática</span>
                 </div>
                 <div class="formula-grid">
                     <article class="formula-card">
-                        <div class="formula-head"><h3>1. Regla del Rectángulo</h3></div>
+                        <div class="formula-head">
+                            <h3>1. Regla del Rectángulo</h3>
+                            <button type="button" class="mini-button" data-procedure="math-rect">Ver procedimiento</button>
+                        </div>
                         <div class="equation">I ≈ h · Σ f(xᵢ + h/2)</div>
+                        <div class="procedure" id="proc-math-rect"></div>
                     </article>
+
                     <article class="formula-card">
-                        <div class="formula-head"><h3>2. Regla del Trapecio</h3></div>
+                        <div class="formula-head">
+                            <h3>2. Regla del Trapecio</h3>
+                            <button type="button" class="mini-button" data-procedure="math-trap">Ver procedimiento</button>
+                        </div>
                         <div class="equation">I ≈ (h/2)·[f(x₀) + 2Σf(xᵢ) + f(xₙ)]</div>
+                        <div class="procedure" id="proc-math-trap"></div>
                     </article>
+
                     <article class="formula-card">
-                        <div class="formula-head"><h3>3. Simpson 1/3 (n par)</h3></div>
+                        <div class="formula-head">
+                            <h3>3. Simpson 1/3 (n par)</h3>
+                            <button type="button" class="mini-button" data-procedure="math-s13">Ver procedimiento</button>
+                        </div>
                         <div class="equation">I ≈ (h/3)·[f(x₀) + 4Σf_imp + 2Σf_par + f(xₙ)]</div>
+                        <div class="procedure" id="proc-math-s13"></div>
                     </article>
+
                     <article class="formula-card">
-                        <div class="formula-head"><h3>4. Simpson 3/8 (n mult. 3)</h3></div>
+                        <div class="formula-head">
+                            <h3>4. Simpson 3/8 (n mult. 3)</h3>
+                            <button type="button" class="mini-button" data-procedure="math-s38">Ver procedimiento</button>
+                        </div>
                         <div class="equation">I ≈ (3h/8)·[f(x₀) + 3Σf_no3 + 2Σf_mult3 + f(xₙ)]</div>
+                        <div class="procedure" id="proc-math-s38"></div>
                     </article>
+                </div>
+            </section>
+
+            <!-- MATERIAL DE CLASE (ANÁLISIS MATEMÁTICO) -->
+            <section class="panel" id="mathMaterialPanel" style="display: none;">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">RECURSOS DE LA ASIGNATURA</span>
+                        <h2>📖 Material de Clase · Análisis Matemático</h2>
+                    </div>
+                </div>
+
+                <div class="resource-links">
+                    <a id="btnDownloadMathRubrica" href="#" class="btn btn-outline resource-btn disabled-link">
+                        📄 Rúbrica de Integración Numérica <small>(Pendiente)</small>
+                    </a>
+                    <a id="btnDownloadMathCuadernillo" href="#" class="btn btn-outline resource-btn disabled-link">
+                        📓 Guía / Cuadernillo de Ejercicios <small>(Pendiente)</small>
+                    </a>
+                </div>
+
+                <div id="teacherMathMaterialUpload" class="teacher-upload-box" style="display: none;">
+                    <h4>⬆️ Subir / Actualizar Material (Docente)</h4>
+                    <label class="file-label">
+                        <span>Rúbrica (PDF/Word máx. 700 KB o enlace Drive):</span>
+                        <input type="file" id="mathRubricaInput" accept=".pdf,.doc,.docx">
+                        <input type="text" id="mathRubricaUrlInput" placeholder="O pega enlace de Google Drive (opcional)">
+                    </label>
+                    <label class="file-label">
+                        <span>Guía / Cuadernillo (PDF/Word máx. 700 KB o enlace Drive):</span>
+                        <input type="file" id="mathCuadernilloInput" accept=".pdf,.doc,.docx">
+                        <input type="text" id="mathCuadernilloUrlInput" placeholder="O pega enlace de Google Drive (opcional)">
+                    </label>
+                    <button type="button" class="btn btn-primary btn-sm" id="uploadMathMaterialBtn" style="width: 100%; margin-top: 4px;">
+                        Publicar Material de Análisis Matemático
+                    </button>
+                </div>
+            </section>
+
+            <!-- CHAT EN TIEMPO REAL (ANÁLISIS MATEMÁTICO) -->
+            <section class="panel highlight-section" id="mathChatPanel" style="display: none;">
+                <div class="chat-header-row">
+                    <div>
+                        <span class="eyebrow">COMUNICACIÓN EN TIEMPO REAL</span>
+                        <h2>💬 Chat de la Clase · Análisis Matemático</h2>
+                    </div>
+                    <span id="mathChatUnreadBadge" class="unread-badge" style="display: none;">0 nuevos</span>
+                </div>
+                <div id="mathChatBox" style="max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 10px 0;">
+                    <div class="empty-msg">Bienvenido al chat de Análisis Matemático. Escribe tu consulta.</div>
+                </div>
+                <div class="url-row">
+                    <input type="text" id="mathChatInput" placeholder="Escribe un mensaje o consulta sobre integración numérica...">
+                    <button type="button" class="btn btn-primary btn-sm" id="sendMathMsgBtn">Enviar</button>
                 </div>
             </section>
 
