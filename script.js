@@ -1,6 +1,6 @@
 /**
- * SIMULADOR DE EFECTO DOPPLER ACÚSTICO, INTEGRACIÓN NUMÉRICA Y AULA VIRTUAL (LMS)
- * UNEMI - Laboratorio Virtual de Física y Análisis Matemático
+- SIMULADOR DE EFECTO DOPPLER ACÚSTICO, INTEGRACIÓN NUMÉRICA Y AULA VIRTUAL (LMS)
+- UNEMI - Laboratorio Virtual de Física y Análisis Matemático
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (brandMark) brandMark.textContent = '∫';
             if (brandEyebrow) brandEyebrow.textContent = 'ANÁLISIS MATEMÁTICO · UNIDAD 3 Y 4';
             if (brandTitle) brandTitle.innerHTML = 'Integración <span>numérica</span>';
-            // Redibujar canvas matemático ahora que es visible
             requestAnimationFrame(() => {
                 if (typeof runNumericalIntegration === 'function') {
                     runNumericalIntegration();
@@ -1454,7 +1453,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/(\d)([a-zA-Z(])/g, '$1*$2')
             .replace(/(\))(\d|[a-zA-Z(])/g, '$1*$2');
 
-        // Reemplazar constantes y funciones matemáticas seguras
         expr = expr
             .replace(/\bpi\b/gi, 'Math.PI')
             .replace(/\be\b/g, 'Math.E')
@@ -1479,7 +1477,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const fn = new Function('x', `"use strict"; return (${expr});`);
         const testVal = fn(1);
         if (typeof testVal !== 'number' || Number.isNaN(testVal)) {
-            // Probar en otro punto por si x=1 es singularidad
             const testVal2 = fn(0.5);
             if (typeof testVal2 !== 'number' || Number.isNaN(testVal2)) {
                 throw new Error("La función f(x) no produjo un resultado numérico válido.");
@@ -1555,7 +1552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function computeHighPrecisionRef(fn, a, b) {
-        const nRef = 600; // Múltiplo de 2 y de 3
+        const nRef = 600;
         const h = (b - a) / nRef;
         let sum = fn(a) + fn(b);
         for (let i = 1; i < nRef; i++) {
@@ -1563,6 +1560,68 @@ document.addEventListener('DOMContentLoaded', () => {
             sum += (i % 2 === 1 ? 4 : 2) * fn(x);
         }
         return (h / 3) * sum;
+    }
+
+    function updateMathProcedures(fn, a, b, n, h) {
+        // 1. Procedimiento Regla del Rectángulo
+        const rectEl = document.getElementById('proc-math-rect');
+        if (rectEl) {
+            try {
+                const resRect = integrateWithMethod(fn, a, b, n, 'rectangle');
+                const terms = resRect.rows.map(r => `f(${r.x.toFixed(3)}) = ${r.fx.toFixed(4)}`).join('<br>');
+                rectEl.innerHTML =
+                    `h = (${b} − ${a}) / ${n} = <strong>${h.toFixed(4)}</strong><br>` +
+                    `${terms}<br>` +
+                    `I ≈ ${h.toFixed(4)} · (${(resRect.integral / h).toFixed(4)}) = <strong>${resRect.integral.toFixed(6)}</strong>`;
+            } catch (e) {
+                rectEl.innerHTML = `<span style="color:var(--warning);">${escapeHTML(e.message)}</span>`;
+            }
+        }
+
+        // 2. Procedimiento Regla del Trapecio
+        const trapEl = document.getElementById('proc-math-trap');
+        if (trapEl) {
+            try {
+                const resTrap = integrateWithMethod(fn, a, b, n, 'trapezoid');
+                const terms = resTrap.rows.map(r => `${r.weight}·f(${r.x.toFixed(3)}) [${r.fx.toFixed(4)}]`).join(' + ');
+                trapEl.innerHTML =
+                    `h/2 = ${h.toFixed(4)} / 2 = <strong>${(h / 2).toFixed(4)}</strong><br>` +
+                    `Suma ponderada: ${terms}<br>` +
+                    `<strong>I ≈ ${resTrap.integral.toFixed(6)}</strong>`;
+            } catch (e) {
+                trapEl.innerHTML = `<span style="color:var(--warning);">${escapeHTML(e.message)}</span>`;
+            }
+        }
+
+        // 3. Procedimiento Simpson 1/3
+        const s13El = document.getElementById('proc-math-s13');
+        if (s13El) {
+            try {
+                const resS13 = integrateWithMethod(fn, a, b, n, 'simpson13');
+                const terms = resS13.rows.map(r => `${r.weight}·f(${r.x.toFixed(3)}) [${r.fx.toFixed(4)}]`).join(' + ');
+                s13El.innerHTML =
+                    `h/3 = ${h.toFixed(4)} / 3 = <strong>${(h / 3).toFixed(4)}</strong> (n = ${n} es par)<br>` +
+                    `Suma ponderada: ${terms}<br>` +
+                    `<strong>I ≈ ${resS13.integral.toFixed(6)}</strong>`;
+            } catch (e) {
+                s13El.innerHTML = `<span style="color:var(--warning);">⚠️ ${escapeHTML(e.message)}</span>`;
+            }
+        }
+
+        // 4. Procedimiento Simpson 3/8
+        const s38El = document.getElementById('proc-math-s38');
+        if (s38El) {
+            try {
+                const resS38 = integrateWithMethod(fn, a, b, n, 'simpson38');
+                const terms = resS38.rows.map(r => `${r.weight}·f(${r.x.toFixed(3)}) [${r.fx.toFixed(4)}]`).join(' + ');
+                s38El.innerHTML =
+                    `3h/8 = 3(${h.toFixed(4)}) / 8 = <strong>${((3 * h) / 8).toFixed(4)}</strong> (n = ${n} múltiplo de 3)<br>` +
+                    `Suma ponderada: ${terms}<br>` +
+                    `<strong>I ≈ ${resS38.integral.toFixed(6)}</strong>`;
+            } catch (e) {
+                s38El.innerHTML = `<span style="color:var(--warning);">⚠️ ${escapeHTML(e.message)}</span>`;
+            }
+        }
     }
 
     function drawMathIntegralCanvas(fn, a, b, n, method) {
@@ -1586,7 +1645,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const plotW = Math.max(40, W - padL - padR);
         const plotH = Math.max(40, H - padT - padB);
 
-        // Muestrear curva continua
         const curvePts = [];
         const samplesCount = 240;
         let yMin = 0;
@@ -1615,7 +1673,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const toPxY = (y) => padT + ((yMax - y) / (yMax - yMin)) * plotH;
         const zeroY = toPxY(0);
 
-        // Cuadrícula de fondo
         mCtx.strokeStyle = 'rgba(145, 162, 189, 0.12)';
         mCtx.lineWidth = 1;
         for (let g = 0; g <= 5; g++) {
@@ -1626,7 +1683,6 @@ document.addEventListener('DOMContentLoaded', () => {
             mCtx.stroke();
         }
 
-        // Subintervalos sombreados según el método elegido
         const h = (b - a) / n;
         for (let i = 0; i < n; i++) {
             const x0 = a + i * h;
@@ -1655,7 +1711,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 mCtx.lineTo(px1, py1);
                 mCtx.lineTo(px1, zeroY);
             } else {
-                // Simpson 1/3 o 3/8: sombreado siguiendo la curva en cada subintervalo
                 mCtx.moveTo(px0, zeroY);
                 const subSteps = 12;
                 for (let s = 0; s <= subSteps; s++) {
@@ -1669,7 +1724,6 @@ document.addEventListener('DOMContentLoaded', () => {
             mCtx.stroke();
         }
 
-        // Eje horizontal y = 0
         mCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
         mCtx.lineWidth = 1.5;
         mCtx.beginPath();
@@ -1677,7 +1731,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mCtx.lineTo(W - padR, zeroY);
         mCtx.stroke();
 
-        // Curva f(x)
         mCtx.strokeStyle = '#ffb66b';
         mCtx.lineWidth = 2.6;
         mCtx.beginPath();
@@ -1689,7 +1742,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         mCtx.stroke();
 
-        // Puntos nodales
         mCtx.fillStyle = '#63d7c6';
         for (let i = 0; i <= n; i++) {
             const xi = a + i * h;
@@ -1700,7 +1752,6 @@ document.addEventListener('DOMContentLoaded', () => {
             mCtx.fill();
         }
 
-        // Etiquetas de ejes
         mCtx.fillStyle = '#91a2bd';
         mCtx.font = '11px "JetBrains Mono", monospace';
         mCtx.textAlign = 'left';
@@ -1784,6 +1835,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             drawMathIntegralCanvas(fn, a, b, n, method);
+            updateMathProcedures(fn, a, b, n, h);
         } catch (err) {
             showMathValidationError(err.message);
         }
@@ -1980,12 +2032,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, query, orderBy } = window.firestoreAPI;
 
         let unsubscribeChat = null;
+        let unsubscribeMathChat = null;
         let unsubscribeFiles = null;
         let unsubscribeRubrica = null;
         let unsubscribeCuadernillo = null;
+        let unsubscribeMathRubrica = null;
+        let unsubscribeMathCuadernillo = null;
         let unsubscribeLiveClass = null;
         let currentUserRole = 'estudiante';
         let unreadCount = 0;
+        let mathUnreadCount = 0;
         let jitsiApi = null;
         let syncTimer = null;
 
@@ -2068,6 +2124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const taskInst = document.getElementById('taskInstructions');
             const teacherUploadBox = document.getElementById('teacherMaterialUpload');
+            const teacherMathUpload = document.getElementById('teacherMathMaterialUpload');
             const teacherLiveCtrl = document.getElementById('teacherLiveControls');
             const studentLiveCtrl = document.getElementById('studentLiveControls');
 
@@ -2077,12 +2134,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 rolBadge.style.color = 'var(--warning)';
                 taskInst.textContent = "Sube deberes o guías (aparecerán en el chat) y califica las entregas.";
                 teacherUploadBox.style.display = 'flex';
+                if (teacherMathUpload) teacherMathUpload.style.display = 'flex';
                 teacherLiveCtrl.style.display = 'flex';
                 studentLiveCtrl.style.display = 'none';
             } else {
                 rolBadge.textContent = '🎓 VISTA DE ESTUDIANTE';
                 taskInst.textContent = "Sube tu tarea resuelta; se enviará al chat y quedará lista para calificación.";
                 teacherUploadBox.style.display = 'none';
+                if (teacherMathUpload) teacherMathUpload.style.display = 'none';
                 teacherLiveCtrl.style.display = 'none';
                 studentLiveCtrl.style.display = 'flex';
             }
@@ -2093,6 +2152,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('materialPanel').style.display = 'block';
             document.getElementById('taskPanel').style.display = 'block';
             document.getElementById('chatPanel').style.display = 'block';
+
+            const mathMatPanel = document.getElementById('mathMaterialPanel');
+            const mathChatPanel = document.getElementById('mathChatPanel');
+            if (mathMatPanel) mathMatPanel.style.display = 'block';
+            if (mathChatPanel) mathChatPanel.style.display = 'block';
         }
 
         function iniciarSistemas(user) {
@@ -2316,7 +2380,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // A. SINCRONIZACIÓN DE RÚBRICA Y CUADERNILLO
+            // A1. SINCRONIZACIÓN DE RÚBRICA Y CUADERNILLO (FÍSICA)
             const btnRubrica = document.getElementById('btnDownloadRubrica');
             const btnCuadernillo = document.getElementById('btnDownloadCuadernillo');
 
@@ -2441,7 +2505,114 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            // B. CHAT EN TIEMPO REAL + NOTIFICACIONES
+            // A2. MATERIAL DE CLASE DE ANÁLISIS MATEMÁTICO (INTEGRACIÓN NUMÉRICA)
+            const btnMathRubrica = document.getElementById('btnDownloadMathRubrica');
+            const btnMathCuadernillo = document.getElementById('btnDownloadMathCuadernillo');
+
+            unsubscribeMathRubrica = onSnapshot(doc(window.firebaseDb, "materiales", "rubrica_math"), (snap) => {
+                if (!btnMathRubrica) return;
+                if (snap.exists() && snap.data().url) {
+                    btnMathRubrica.href = getSafeFileUrl(snap.data().url);
+                    btnMathRubrica.target = "_blank";
+                    btnMathRubrica.classList.remove('disabled-link');
+                    btnMathRubrica.innerHTML = `📄 Rúbrica de Integración Numérica <small>Descargar</small>`;
+                } else {
+                    btnMathRubrica.href = "#";
+                    btnMathRubrica.classList.add('disabled-link');
+                    btnMathRubrica.innerHTML = `📄 Rúbrica de Integración Numérica <small>(Pendiente)</small>`;
+                }
+            });
+
+            unsubscribeMathCuadernillo = onSnapshot(doc(window.firebaseDb, "materiales", "cuadernillo_math"), (snap) => {
+                if (!btnMathCuadernillo) return;
+                if (snap.exists() && snap.data().url) {
+                    btnMathCuadernillo.href = getSafeFileUrl(snap.data().url);
+                    btnMathCuadernillo.target = "_blank";
+                    btnMathCuadernillo.classList.remove('disabled-link');
+                    btnMathCuadernillo.innerHTML = `📓 Guía / Cuadernillo de Ejercicios <small>Descargar</small>`;
+                } else {
+                    btnMathCuadernillo.href = "#";
+                    btnMathCuadernillo.classList.add('disabled-link');
+                    btnMathCuadernillo.innerHTML = `📓 Guía / Cuadernillo de Ejercicios <small>(Pendiente)</small>`;
+                }
+            });
+
+            const uploadMathMaterialBtn = document.getElementById('uploadMathMaterialBtn');
+            if (uploadMathMaterialBtn) {
+                uploadMathMaterialBtn.onclick = async () => {
+                    if (currentUserRole !== 'docente') return;
+
+                    const rubFile = document.getElementById('mathRubricaInput').files[0];
+                    const rubLink = document.getElementById('mathRubricaUrlInput').value.trim();
+                    const cuadFile = document.getElementById('mathCuadernilloInput').files[0];
+                    const cuadLink = document.getElementById('mathCuadernilloUrlInput').value.trim();
+
+                    const hasRub = Boolean(rubFile || rubLink);
+                    const hasCuad = Boolean(cuadFile || cuadLink);
+
+                    if (!hasRub && !hasCuad) {
+                        alert("Selecciona un archivo o pega un enlace de Drive para publicar.");
+                        return;
+                    }
+
+                    uploadMathMaterialBtn.disabled = true;
+                    uploadMathMaterialBtn.textContent = "Publicando...";
+
+                    try {
+                        let rubUrl = null;
+                        let rubName = "Rúbrica de Integración Numérica";
+                        let cuadUrl = null;
+                        let cuadName = "Guía / Cuadernillo de Ejercicios";
+                        const adjuntos = [];
+
+                        if (hasRub) {
+                            rubUrl = rubFile ? await fileToBase64(rubFile) : rubLink;
+                            if (rubFile) rubName = rubFile.name;
+                            await setDoc(doc(window.firebaseDb, "materiales", "rubrica_math"), {
+                                nombre: rubName,
+                                url: rubUrl,
+                                subidoPor: user.displayName,
+                                fecha: new Date()
+                            });
+                            adjuntos.push({ nombre: `Rúbrica: ${rubName}`, url: rubUrl });
+                        }
+
+                        if (hasCuad) {
+                            cuadUrl = cuadFile ? await fileToBase64(cuadFile) : cuadLink;
+                            if (cuadFile) cuadName = cuadFile.name;
+                            await setDoc(doc(window.firebaseDb, "materiales", "cuadernillo_math"), {
+                                nombre: cuadName,
+                                url: cuadUrl,
+                                subidoPor: user.displayName,
+                                fecha: new Date()
+                            });
+                            adjuntos.push({ nombre: `Guía/Cuadernillo: ${cuadName}`, url: cuadUrl });
+                        }
+
+                        await addDoc(collection(window.firebaseDb, "chat_math"), {
+                            usuario: user.displayName,
+                            email: user.email,
+                            mensaje: `📢 El docente ${user.displayName} publicó nuevo material de clase en Análisis Matemático.`,
+                            adjuntos: adjuntos,
+                            esSistema: true,
+                            fecha: new Date()
+                        });
+
+                        document.getElementById('mathRubricaInput').value = '';
+                        document.getElementById('mathRubricaUrlInput').value = '';
+                        document.getElementById('mathCuadernilloInput').value = '';
+                        document.getElementById('mathCuadernilloUrlInput').value = '';
+                    } catch (err) {
+                        console.error("Error publicando material matemático:", err);
+                        alert(err.message);
+                    } finally {
+                        uploadMathMaterialBtn.disabled = false;
+                        uploadMathMaterialBtn.textContent = "Publicar Material de Análisis Matemático";
+                    }
+                };
+            }
+
+            // B1. CHAT EN TIEMPO REAL + NOTIFICACIONES (FÍSICA)
             const chatBox = document.getElementById('chatBox');
             const chatInput = document.getElementById('chatInput');
             const sendMsgBtn = document.getElementById('sendMsgBtn');
@@ -2469,7 +2640,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 unreadBadge.style.display = 'inline-block';
 
                                 playNotificationSound();
-                                showToastNotification(newMsg.usuario, newMsg.mensaje);
+                                showToastNotification(newMsg.usuario, newMsg.mensaje, "chatPanel");
 
                                 if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
                                     new Notification(`Mensaje de ${newMsg.usuario}`, { body: newMsg.mensaje });
@@ -2551,6 +2722,126 @@ document.addEventListener('DOMContentLoaded', () => {
             chatInput.onkeydown = (e) => {
                 if (e.key === 'Enter') enviarMensaje();
             };
+
+            // B2. CHAT EN TIEMPO REAL + NOTIFICACIONES (ANÁLISIS MATEMÁTICO)
+            const mathChatBox = document.getElementById('mathChatBox');
+            const mathChatInput = document.getElementById('mathChatInput');
+            const sendMathMsgBtn = document.getElementById('sendMathMsgBtn');
+            const mathUnreadBadge = document.getElementById('mathChatUnreadBadge');
+
+            function resetMathUnreadBadge() {
+                mathUnreadCount = 0;
+                if (mathUnreadBadge) mathUnreadBadge.style.display = 'none';
+            }
+
+            if (mathChatBox) mathChatBox.addEventListener('click', resetMathUnreadBadge);
+            if (mathChatInput) mathChatInput.addEventListener('focus', resetMathUnreadBadge);
+
+            let isInitialMathChatLoad = true;
+            const qMathChat = query(collection(window.firebaseDb, "chat_math"), orderBy("fecha", "asc"));
+
+            unsubscribeMathChat = onSnapshot(qMathChat, (snapshot) => {
+                if (!mathChatBox) return;
+
+                if (!isInitialMathChatLoad) {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const newMsg = change.doc.data();
+                            if (newMsg.email !== user.email) {
+                                mathUnreadCount++;
+                                if (mathUnreadBadge) {
+                                    mathUnreadBadge.textContent = `${mathUnreadCount} nuevo${mathUnreadCount > 1 ? 's' : ''}`;
+                                    mathUnreadBadge.style.display = 'inline-block';
+                                }
+
+                                playNotificationSound();
+                                showToastNotification(`Análisis · ${newMsg.usuario}`, newMsg.mensaje, "mathChatPanel");
+
+                                if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+                                    new Notification(`Análisis · ${newMsg.usuario}`, { body: newMsg.mensaje });
+                                }
+                            }
+                        }
+                    });
+                }
+                isInitialMathChatLoad = false;
+
+                mathChatBox.innerHTML = '';
+                if (snapshot.empty) {
+                    mathChatBox.innerHTML = '<div class="empty-msg">No hay mensajes aún en Análisis Matemático. Inicia la conversación.</div>';
+                    return;
+                }
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const isMine = data.email === user.email;
+                    const div = document.createElement('div');
+                    div.style.fontSize = '11px';
+                    div.style.padding = '8px 10px';
+                    div.style.borderRadius = '8px';
+
+                    if (data.esSistema) {
+                        div.style.background = 'color-mix(in srgb, var(--warning) 16%, var(--surface-2))';
+                        div.style.borderLeft = '3px solid var(--warning)';
+                    } else if (isMine) {
+                        div.style.background = 'color-mix(in srgb, var(--primary) 16%, transparent)';
+                        div.style.borderLeft = '3px solid var(--primary)';
+                    } else {
+                        div.style.background = 'var(--surface-2)';
+                        div.style.borderLeft = '3px solid var(--accent-2)';
+                    }
+
+                    let adjuntosHTML = '';
+                    if (Array.isArray(data.adjuntos)) {
+                        data.adjuntos.forEach(adj => {
+                            const safeHref = getSafeFileUrl(adj.url);
+                            adjuntosHTML += `<div><a href="${escapeHTML(safeHref)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(adj.nombre)}</a></div>`;
+                        });
+                    } else if (data.archivoUrl) {
+                        const safeHref = getSafeFileUrl(data.archivoUrl);
+                        adjuntosHTML = `<div><a href="${escapeHTML(safeHref)}" target="_blank" class="chat-attachment">📎 ${escapeHTML(data.archivoNombre || 'Descargar archivo')}</a></div>`;
+                    }
+
+                    div.innerHTML = `
+                        <strong>${escapeHTML(data.usuario)}</strong><br>
+                        <span style="color:var(--text);">${escapeHTML(data.mensaje)}</span>
+                        ${adjuntosHTML}
+                    `;
+                    mathChatBox.appendChild(div);
+                });
+                mathChatBox.scrollTop = mathChatBox.scrollHeight;
+            }, (err) => {
+                console.error("Error leyendo chat matemático:", err);
+                if (mathChatBox) {
+                    mathChatBox.innerHTML = `<div class="empty-msg" style="color:var(--warning);">Verifica los permisos de Firestore en Firebase.</div>`;
+                }
+            });
+
+            async function enviarMensajeMath() {
+                if (!mathChatInput) return;
+                const msg = mathChatInput.value.trim();
+                if (!msg) return;
+                mathChatInput.value = '';
+                resetMathUnreadBadge();
+                try {
+                    await addDoc(collection(window.firebaseDb, "chat_math"), {
+                        usuario: user.displayName,
+                        email: user.email,
+                        mensaje: msg,
+                        fecha: new Date()
+                    });
+                } catch (err) {
+                    console.error("Error enviando mensaje en Análisis:", err);
+                    alert("No se pudo enviar el mensaje.");
+                }
+            }
+
+            if (sendMathMsgBtn) sendMathMsgBtn.onclick = enviarMensajeMath;
+            if (mathChatInput) {
+                mathChatInput.onkeydown = (e) => {
+                    if (e.key === 'Enter') enviarMensajeMath();
+                };
+            }
 
             // C. GESTIÓN DE TAREAS, CALIFICACIONES Y ELIMINACIÓN SINCRONIZADA
             const fileInput = document.getElementById('fileInput');
@@ -2762,13 +3053,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('materialPanel').style.display = 'none';
                 document.getElementById('taskPanel').style.display = 'none';
                 document.getElementById('chatPanel').style.display = 'none';
+
+                const mathMatPanel = document.getElementById('mathMaterialPanel');
+                const mathChatPanel = document.getElementById('mathChatPanel');
+                if (mathMatPanel) mathMatPanel.style.display = 'none';
+                if (mathChatPanel) mathChatPanel.style.display = 'none';
+
                 document.querySelectorAll('.rol-badge').forEach(tag => tag.remove());
                 cerrarJitsi();
 
                 if (unsubscribeChat) unsubscribeChat();
+                if (unsubscribeMathChat) unsubscribeMathChat();
                 if (unsubscribeFiles) unsubscribeFiles();
                 if (unsubscribeRubrica) unsubscribeRubrica();
                 if (unsubscribeCuadernillo) unsubscribeCuadernillo();
+                if (unsubscribeMathRubrica) unsubscribeMathRubrica();
+                if (unsubscribeMathCuadernillo) unsubscribeMathCuadernillo();
                 if (unsubscribeLiveClass) unsubscribeLiveClass();
             }
         });
