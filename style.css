@@ -155,6 +155,46 @@ body {
     font-weight: 500;
 }
 
+/* SELECTOR DE ASIGNATURA EN HEADER */
+.module-switcher {
+    display: inline-flex;
+    flex-wrap: wrap;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 4px;
+    gap: 6px;
+}
+
+.mod-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mod-btn:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.mod-btn.active {
+    background: var(--primary);
+    color: #071318;
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+
 .header-actions {
     display: flex;
     align-items: center;
@@ -203,6 +243,11 @@ select, input[type="text"], input[type="number"] {
     padding: 7px 10px;
     font-family: inherit;
     font-size: 12px;
+}
+
+select:focus, input[type="text"]:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary);
 }
 
 .btn {
@@ -335,11 +380,6 @@ select, input[type="text"], input[type="number"] {
 /* ============================================================
    SELECTOR DE PERSPECTIVA Y ESCENARIOS DE LA VIDA REAL
    ============================================================ */
-.perspective-panel {
-    padding: 16px 20px;
-    width: 100%;
-}
-
 .perspective-header {
     display: flex;
     justify-content: space-between;
@@ -406,8 +446,8 @@ select, input[type="text"], input[type="number"] {
 }
 
 .real-scenarios-drawer {
-    margin-top: 14px;
-    padding-top: 14px;
+    margin-top: 8px;
+    padding-top: 12px;
     border-top: 1px solid var(--line);
     width: 100%;
     animation: fadeDrawer 0.22s ease-out;
@@ -567,7 +607,7 @@ select, input[type="text"], input[type="number"] {
 
 .metric-card strong {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 24px;
+    font-size: 22px;
     color: var(--text);
 }
 
@@ -587,10 +627,17 @@ select, input[type="text"], input[type="number"] {
     color: var(--muted);
 }
 
-/* WORKSPACE 3 COLUMNAS */
+/* WORKSPACE 3 COLUMNAS (FÍSICA) Y 2 COLUMNAS (ANÁLISIS MATEMÁTICO) */
 .workspace {
     display: grid;
     grid-template-columns: 280px 1fr 350px;
+    gap: 20px;
+    align-items: start;
+}
+
+.math-workspace {
+    display: grid;
+    grid-template-columns: 330px 1fr;
     gap: 20px;
     align-items: start;
 }
@@ -615,6 +662,7 @@ select, input[type="text"], input[type="number"] {
 .control-title {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     font-size: 12px;
     margin-bottom: 6px;
 }
@@ -623,6 +671,115 @@ select, input[type="text"], input[type="number"] {
     font-family: 'JetBrains Mono', monospace;
     color: var(--primary);
     font-weight: 600;
+}
+
+.math-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.math-input-full {
+    width: 100%;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 13px !important;
+    padding: 9px 11px !important;
+}
+
+.math-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.math-limits-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.math-radio-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.math-radio-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.math-radio-card:hover {
+    border-color: var(--primary);
+}
+
+.math-radio-card:has(input:checked) {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, var(--surface-2));
+}
+
+.math-radio-card input[type="radio"] {
+    accent-color: var(--primary);
+    margin-top: 3px;
+}
+
+.math-radio-card div {
+    display: flex;
+    flex-direction: column;
+}
+
+.math-radio-card strong {
+    font-size: 12px;
+    color: var(--text);
+}
+
+.math-radio-card span {
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.math-action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.math-canvas-wrap {
+    height: 330px !important;
+}
+
+.math-nodes-scroll {
+    max-height: 310px;
+    overflow-y: auto;
+}
+
+.status-pill-ok {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    color: var(--primary);
+}
+
+.status-pill-warn {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--warning) 16%, transparent);
+    color: var(--warning);
 }
 
 input[type="range"] {
@@ -675,7 +832,7 @@ input[type="range"] {
     overflow: hidden;
 }
 
-#waveCanvas {
+#waveCanvas, #mathCanvas {
     width: 100%;
     height: 100%;
     display: block;
@@ -787,7 +944,7 @@ input[type="range"] {
 
 .equation {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--primary);
     background: var(--surface-1);
     padding: 8px 10px;
@@ -912,40 +1069,6 @@ input[type="range"] {
     color: var(--muted);
 }
 
-/* BARRA DE PROGRESO */
-.progress-wrap {
-    position: relative;
-    width: 100%;
-    height: 18px;
-    background: var(--surface-1);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.progress-bar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 0%;
-    background: var(--primary);
-    transition: width 0.15s ease;
-}
-
-.progress-wrap span {
-    position: relative;
-    z-index: 2;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
 .highlight-section {
     background: color-mix(in srgb, var(--accent-2) 8%, var(--surface-2));
     padding: 14px;
@@ -993,24 +1116,6 @@ input[type="range"] {
     padding-bottom: 0;
 }
 
-.grade-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 6px;
-}
-
-.grade-badge {
-    display: inline-block;
-    padding: 2px 7px;
-    border-radius: 999px;
-    font-size: 10px;
-    font-weight: 700;
-    background: color-mix(in srgb, var(--primary) 18%, transparent);
-    color: var(--primary);
-    margin-top: 4px;
-}
-
 /* CHAT Y NOTIFICACIONES */
 .chat-header-row {
     display: flex;
@@ -1030,12 +1135,6 @@ input[type="range"] {
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 999px;
-    animation: pulseBadge 1.5s infinite;
-}
-
-@keyframes pulseBadge {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
 }
 
 #chatBox {
@@ -1049,25 +1148,6 @@ input[type="range"] {
     display: flex;
     flex-direction: column;
     gap: 8px;
-}
-
-.chat-attachment {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 5px;
-    padding: 5px 8px;
-    background: var(--surface-1);
-    border: 1px solid var(--primary);
-    border-radius: 6px;
-    color: var(--primary);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 11px;
-}
-
-.chat-attachment:hover {
-    background: color-mix(in srgb, var(--primary) 15%, var(--surface-1));
 }
 
 .url-row {
@@ -1133,7 +1213,7 @@ th {
     .metrics-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    .workspace {
+    .workspace, .math-workspace {
         grid-template-columns: 1fr;
     }
     .charts-grid {
