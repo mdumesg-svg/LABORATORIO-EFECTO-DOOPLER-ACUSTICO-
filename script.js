@@ -1,6 +1,6 @@
 /**
  * SIMULADOR DE EFECTO DOPPLER ACÚSTICO Y AULA VIRTUAL SINCRÓNICA (LMS)
- * UNEMI - Laboratorio Virtual de Física (Plan Gratuito Spark)
+ * UNEMI - Laboratorio Virtual de Física y Análisis Matemático (Plan Gratuito Spark)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     ];
 
-    // 1. ESTADO GLOBAL
+    // 1. ESTADO GLOBAL (FÍSICA + INTEGRACIÓN NUMÉRICA)
     const state = {
         f: 440,
         vS: 20,
@@ -150,7 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
         recX: 0,
         history: [],
         perspective: 'physics', // 'physics' | 'real'
-        activeScenario: REAL_SCENARIOS[0]
+        activeScenario: REAL_SCENARIOS[0],
+        // Parámetros de Integración Numérica (Simpson 1/3 Compuesto)
+        numIntervalT: 6.0,     // Ventana temporal [0, T_int] en segundos
+        numSubintervals: 12,   // Número par n de subintervalos
+        numDistInit: 120,      // Distancia perpendicular mínima d0 (m)
+        numAvgFreq: 440,       // Frecuencia promedio integrada
+        numIntegralVal: 0,     // Valor de la integral de f'(t) dt
+        numTrapVal: 0,         // Valor por Trapecio compuesto (para estimar error)
+        numSamples: []         // Puntos evaluados (t_i, f'(t_i))
     };
 
     // MOTOR ACÚSTICO MULTIPERFIL (WEB AUDIO API)
@@ -181,7 +189,11 @@ document.addEventListener('DOMContentLoaded', () => {
         waveScale: document.getElementById('waveScale'),
         waveSpacing: document.getElementById('waveSpacing'),
         directionMode: document.getElementById('directionMode'),
-        themeSelect: document.getElementById('themeSelect')
+        themeSelect: document.getElementById('themeSelect'),
+        // Inputs opcionales del módulo de Integración Numérica
+        numTimeWindow: document.getElementById('numTimeWindow'),
+        numSubintervals: document.getElementById('numSubintervals'),
+        numPerpDist: document.getElementById('numPerpDist')
     };
 
     const outputs = {
@@ -197,7 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
         observedFreq: document.getElementById('observedFrequencyValue'),
         freqState: document.getElementById('frequencyState'),
         emittedWave: document.getElementById('emittedWavelengthValue'),
-        freqDelta: document.getElementById('frequencyDeltaValue')
+        freqDelta: document.getElementById('frequencyDeltaValue'),
+        // Outputs opcionales del módulo de Integración Numérica
+        numTimeWindowOut: document.getElementById('numTimeWindowOut'),
+        numSubintervalsOut: document.getElementById('numSubintervalsOut'),
+        numPerpDistOut: document.getElementById('numPerpDistOut'),
+        numIntegralOut: document.getElementById('numIntegralOut'),
+        numAvgFreqOut: document.getElementById('numAvgFreqOut'),
+        numErrorOut: document.getElementById('numErrorOut')
     };
 
     const toggles = {
@@ -243,15 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const overlay = document.getElementById('canvasModeOverlay');
 
         if (mode === 'real') {
-            modeRealBtn.classList.add('active');
-            modePhysicsBtn.classList.remove('active');
-            drawer.style.display = 'block';
+            if (modeRealBtn) modeRealBtn.classList.add('active');
+            if (modePhysicsBtn) modePhysicsBtn.classList.remove('active');
+            if (drawer) drawer.style.display = 'block';
             selectRealScenario(state.activeScenario.id);
         } else {
-            modePhysicsBtn.classList.add('active');
-            modeRealBtn.classList.remove('active');
-            drawer.style.display = 'none';
-            badge.textContent = 'Vista esquemática de laboratorio';
+            if (modePhysicsBtn) modePhysicsBtn.classList.add('active');
+            if (modeRealBtn) modeRealBtn.classList.remove('active');
+            if (drawer) drawer.style.display = 'none';
+            if (badge) badge.textContent = 'Vista esquemática de laboratorio';
             if (overlay) overlay.textContent = 'SIMULACIÓN ACTIVA · FÍSICA';
             calculatePhysics();
         }
@@ -363,7 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lfoOsc.start();
             noiseNode.start();
 
-            // Bucle de modulación temporal (sirenas bitonales, chirridos de murciélago, clics de delfín)
             soundModInterval = setInterval(updateSoundModulation, 110);
         }
     }
@@ -529,7 +547,90 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. MOTOR FÍSICO Y CÁLCULO DE FÓRMULAS
+    // 3. MOTOR FÍSICO, INTEGRACIÓN NUMÉRICA (SIMPSON 1/3) Y CÁLCULO DE FÓRMULAS
+    function computeNumericalIntegration() {
+        const T_win = inputs.numTimeWindow ? parseFloat(inputs.numTimeWindow.value) : state.numIntervalT;
+        let n = inputs.numSubintervals ? parseInt(inputs.numSubintervals.value, 10) : state.numSubintervals;
+        const d0 = inputs.numPerpDist ? parseFloat(inputs.numPerpDist.value) : state.numDistInit;
+
+        // Simpson 1/3 compuesto exige que n sea un entero par >= 2
+        if (isNaN(n) || n < 2) n = 2;
+        if (n % 2 !== 0) n += 1;
+
+        state.numIntervalT = T_win;
+        state.numSubintervals = n;
+        state.numDistInit = d0;
+
+        const vRel = state.vS - state.vR;
+        // Posición longitudinal inicial centrada en el paso más cercano (t = T_win / 2)
+        const x0 = -vRel * (T_win / 2);
+        const h = T_win / n;
+
+        const samples = [];
+        let sumSimpson = 0;
+        let sumTrap = 0;
+
+        for (let i = 0; i <= n; i++) {
+            const t = i * h;
+            const x = x0 + vRel * t;
+            const r = Math.hypot(x, d0);
+            // Velocidad radial proyectada sobre la línea fuente-receptor
+            const vRadialS = r > 1e-6 ? state.vS * (-x / r) : state.vS;
+            const vRadialR = r > 1e-6 ? state.vR * (-x / r) : state.vR;
+
+            let denom = state.v - vRadialS;
+            if (Math.abs(denom) < 0.1) denom = 0.1;
+            const fInstant = Math.abs(state.vS) >= state.v
+                ? 0
+                : Math.max(0, state.f * ((state.v - vRadialR) / denom));
+
+            samples.push({ i, t, x, r, fInstant });
+
+            const wSimpson = (i === 0 || i === n) ? 1 : (i % 2 === 1 ? 4 : 2);
+            const wTrap = (i === 0 || i === n) ? 1 : 2;
+            sumSimpson += wSimpson * fInstant;
+            sumTrap += wTrap * fInstant;
+        }
+
+        const integralSimpson = (h / 3) * sumSimpson;
+        const integralTrap = (h / 2) * sumTrap;
+        const avgFreq = T_win > 0 ? integralSimpson / T_win : state.fObs;
+        const truncError = Math.abs(integralSimpson - integralTrap);
+
+        state.numSamples = samples;
+        state.numIntegralVal = integralSimpson;
+        state.numTrapVal = integralTrap;
+        state.numAvgFreq = avgFreq;
+
+        // Actualizar UI si existen los elementos del módulo numérico
+        if (outputs.numTimeWindowOut) outputs.numTimeWindowOut.textContent = `${T_win.toFixed(1)} s`;
+        if (outputs.numSubintervalsOut) outputs.numSubintervalsOut.textContent = `${n} (h = ${h.toFixed(3)} s)`;
+        if (outputs.numPerpDistOut) outputs.numPerpDistOut.textContent = `${d0.toFixed(0)} m`;
+        if (outputs.numIntegralOut) outputs.numIntegralOut.innerHTML = `${integralSimpson.toFixed(1)} <small>ciclos</small>`;
+        if (outputs.numAvgFreqOut) outputs.numAvgFreqOut.innerHTML = `${avgFreq.toFixed(2)} <small>Hz</small>`;
+        if (outputs.numErrorOut) outputs.numErrorOut.innerHTML = `${truncError.toExponential(2)} <small>ciclos</small>`;
+
+        const numProcEl = document.getElementById('proc-numerical');
+        if (numProcEl) {
+            numProcEl.innerHTML =
+                `Método: <strong>Simpson 1/3 Compuesto</strong> en [0, ${T_win.toFixed(1)} s] con n = ${n}, h = ${h.toFixed(3)} s<br>` +
+                `∫ f′(t) dt ≈ (h/3)[f′(t₀) + 4∑f′(t₂ₖ₋₁) + 2∑f′(t₂ₖ) + f′(tₙ)] = <strong>${integralSimpson.toFixed(2)} ciclos</strong><br>` +
+                `Frecuencia media percibida: f̄′ = (1/${T_win.toFixed(1)}) ∫ f′(t) dt = <strong>${avgFreq.toFixed(2)} Hz</strong> (Diferencia vs Trapecio: ${truncError.toExponential(2)})`;
+        }
+
+        const numTableBody = document.getElementById('numericalTableBody');
+        if (numTableBody) {
+            numTableBody.innerHTML = samples.map(s => `
+                <tr>
+                    <td>${s.i}</td>
+                    <td>${s.t.toFixed(2)} s</td>
+                    <td>${s.x.toFixed(1)} m</td>
+                    <td>${s.fInstant.toFixed(2)} Hz</td>
+                </tr>
+            `).join('');
+        }
+    }
+
     function calculatePhysics() {
         state.f = parseFloat(inputs.frequency.value);
         state.vS = parseFloat(inputs.sourceVelocity.value);
@@ -606,6 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
         outputs.emittedWave.innerHTML = `${state.lambda.toFixed(3)} <small>m</small>`;
         outputs.freqDelta.innerHTML = `${delta > 0 ? '+' : ''}${delta.toFixed(1)} <small>%</small>`;
 
+        computeNumericalIntegration();
         updateFormulas(delta, num, denom, isUnderwater);
         updateDataTable();
         updateCharts();
@@ -645,10 +747,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <tr><td>Velocidad de la fuente</td><td>vₛ</td><td>${state.vS}</td><td>m/s</td></tr>
             <tr><td>Velocidad del receptor</td><td>vᵣ</td><td>${state.vR}</td><td>m/s</td></tr>
             <tr><td>Longitud de onda emitida</td><td>λ</td><td>${state.lambda.toFixed(3)}</td><td>m</td></tr>
+            <tr><td>Frecuencia media integrada (Simpson 1/3)</td><td>f̄′</td><td>${state.numAvgFreq.toFixed(2)}</td><td>Hz</td></tr>
         `;
     }
 
-    // 4. GRÁFICAS (5 PANELES OPTIMIZADOS PARA MÓVIL Y ESCRITORIO)
+    // 4. GRÁFICAS (5 PANELES + GRÁFICA DE INTEGRACIÓN NUMÉRICA OPCIONAL)
     function initCharts() {
         Chart.defaults.color = '#91a2bd';
         Chart.defaults.font.family = "'DM Sans', sans-serif";
@@ -708,6 +811,39 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             options: { ...opts, animation: false, scales: { y: { min: 0 } } }
         });
+
+        const numCanvas = document.getElementById('chartNumerical');
+        if (numCanvas) {
+            charts.numerical = new Chart(numCanvas, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'f′(t) Instantánea (Hz)',
+                            data: [],
+                            borderColor: '#63d7c6',
+                            backgroundColor: 'rgba(99, 215, 198, 0.16)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'f̄′ Media Simpson (Hz)',
+                            data: [],
+                            borderColor: '#ffb66b',
+                            borderDash: [6, 4],
+                            pointRadius: 0,
+                            tension: 0
+                        }
+                    ]
+                },
+                options: {
+                    ...opts,
+                    plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } } }
+                }
+            });
+        }
     }
 
     function updateCharts() {
@@ -737,6 +873,13 @@ document.addEventListener('DOMContentLoaded', () => {
         charts.speed.data.datasets[0].data = [mach, Math.max(0, 1 - mach)];
         charts.speed.update('none');
 
+        if (charts.numerical && state.numSamples.length > 0) {
+            charts.numerical.data.labels = state.numSamples.map(s => `${s.t.toFixed(1)}s`);
+            charts.numerical.data.datasets[0].data = state.numSamples.map(s => s.fInstant);
+            charts.numerical.data.datasets[1].data = state.numSamples.map(() => state.numAvgFreq);
+            charts.numerical.update('none');
+        }
+
         if (!state.isPaused) {
             state.history.push(state.fObs);
             if (state.history.length > 25) state.history.shift();
@@ -750,7 +893,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const parent = canvas.parentElement;
         if (!parent || parent.clientWidth === 0) return;
 
-        // Evita que Safari iOS borre el canvas por el cambio de altura de la barra URL al hacer scroll
         if (!force && isMobileDevice && parent.clientWidth === lastCanvasWidth) {
             return;
         }
@@ -841,7 +983,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const groundY = cY + 18;
         ctx.save();
 
-        // Fondo base opaco para evitar rastros al usar alpha: false
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, 0, w, h);
 
@@ -1277,8 +1418,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 6. EVENTOS DE SIMULADOR Y SELECTOR DE PERSPECTIVA
-    document.getElementById('modePhysicsBtn').addEventListener('click', () => setPerspectiveMode('physics'));
-    document.getElementById('modeRealBtn').addEventListener('click', () => setPerspectiveMode('real'));
+    const modePhysicsBtn = document.getElementById('modePhysicsBtn');
+    const modeRealBtn = document.getElementById('modeRealBtn');
+    if (modePhysicsBtn) modePhysicsBtn.addEventListener('click', () => setPerspectiveMode('physics'));
+    if (modeRealBtn) modeRealBtn.addEventListener('click', () => setPerspectiveMode('real'));
 
     Object.values(inputs).forEach(input => {
         if (input && input.id !== 'themeSelect') {
@@ -1291,11 +1434,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    inputs.themeSelect.addEventListener('change', (e) => {
-        document.body.setAttribute('data-theme', e.target.value);
-        Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted');
-        Object.values(charts).forEach(c => c.update('none'));
-    });
+    if (inputs.themeSelect) {
+        inputs.themeSelect.addEventListener('change', (e) => {
+            document.body.setAttribute('data-theme', e.target.value);
+            Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted');
+            Object.values(charts).forEach(c => c.update('none'));
+        });
+    }
 
     document.getElementById('toggleAudioBtn').addEventListener('click', (e) => toggleAudio(e.target));
     document.getElementById('pauseBtn').addEventListener('click', (e) => {
@@ -1315,6 +1460,9 @@ document.addEventListener('DOMContentLoaded', () => {
         inputs.waveScale.value = 1.0;
         inputs.waveSpacing.value = 1.2;
         inputs.directionMode.value = 'custom';
+        if (inputs.numTimeWindow) inputs.numTimeWindow.value = 6.0;
+        if (inputs.numSubintervals) inputs.numSubintervals.value = 12;
+        if (inputs.numPerpDist) inputs.numPerpDist.value = 120;
         setPerspectiveMode('physics');
         state.waves = [];
     });
@@ -1322,6 +1470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.mini-button[data-procedure]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const panel = document.getElementById('proc-' + e.target.getAttribute('data-procedure'));
+            if (!panel) return;
             panel.classList.toggle('open');
             e.target.textContent = panel.classList.contains('open') ? 'Ocultar' : 'Ver procedimiento';
         });
@@ -1350,7 +1499,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ["Frecuencia Percibida", "f'", state.fObs.toFixed(2).replace('.', ','), "Hz"],
             ["Velocidad Fuente", "vs", state.vS, "m/s"],
             ["Velocidad Receptor", "vr", state.vR, "m/s"],
-            ["Longitud de Onda", "lambda", state.lambda.toFixed(4).replace('.', ','), "m"]
+            ["Longitud de Onda", "lambda", state.lambda.toFixed(4).replace('.', ','), "m"],
+            ["Integral Acustica (Simpson 1/3)", "I_f", state.numIntegralVal.toFixed(2).replace('.', ','), "ciclos"],
+            ["Frecuencia Media Integrada", "f_avg", state.numAvgFreq.toFixed(2).replace('.', ','), "Hz"]
         ];
         rows.forEach(r => { csv += r.join(";") + "\n"; });
         const link = document.createElement("a");
@@ -1407,6 +1558,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showToastNotification(title, message, targetId = 'chatPanel') {
         const container = document.getElementById('toastContainer');
+        if (!container) return;
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
         toast.innerHTML = `<strong>🔔 ${escapeHTML(title)}</strong><span>${escapeHTML(message)}</span>`;
@@ -1450,16 +1602,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 jitsiApi = null;
             }
             const container = document.getElementById('jitsiContainer');
-            container.innerHTML = '';
-            container.style.display = 'none';
-            document.getElementById('jitsiFallbackBar').style.display = 'none';
+            if (container) {
+                container.innerHTML = '';
+                container.style.display = 'none';
+            }
+            const fallbackBar = document.getElementById('jitsiFallbackBar');
+            if (fallbackBar) fallbackBar.style.display = 'none';
         }
 
         function abrirJitsi(user) {
             const container = document.getElementById('jitsiContainer');
             const fallbackBar = document.getElementById('jitsiFallbackBar');
+            if (!container) return;
             container.style.display = 'block';
-            fallbackBar.style.display = 'block';
+            if (fallbackBar) fallbackBar.style.display = 'block';
 
             if (jitsiApi) return;
 
